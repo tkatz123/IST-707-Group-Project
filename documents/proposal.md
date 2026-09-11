@@ -129,37 +129,21 @@ Backblaze and similar providers, and drive manufacturers.
 
 ### Data
 
-<!--
-The rubric asks for four things here:
-  1. A link to the data.
-  2. Summary information: row count, column count, feature types.
-  3. Provenance. How do we know it is reliable? Does it carry metadata, and if not,
-     what else do we know about it?
-  4. If more than one dataset is needed, name each and give evidence it is available.
-Section 2 of the brief has every number already, measured from a real downloaded quarter
-rather than quoted from documentation. Say that plainly: it is the strongest thing
-this proposal can claim about its own data.
-Include the licence terms and the absence of PII.
--->
+The project uses the Backblaze Drive Stats dataset, a public record of daily telemetry from every drive in Backblaze's data centers, published one archive per quarter at [Backblaze Drive Stats](https://www.backblaze.com/cloud-storage/resources/hard-drive-test-data).
 
-_To be written._
+We inspected a full quarter before committing to it. Q1 2025 holds 90 daily CSV files covering January 1 through March 31, 2025, with no missing or duplicate days, totaling 27,799,986 rows across 318,426 distinct drives, of which 1,067 recorded a failure. Each row is one drive observed on one calendar day. The project will use twelve quarters spanning 2023 through 2025, training on 2023 and 2024 and evaluating on 2025, since one quarter leaves too little room for a 30-day window and a later test period.
+
+Each row contains 197 columns: 11 identifying and administrative fields (date, serial number, model, capacity, failure flag, location) and 186 SMART sensor columns, being 93 self-diagnostic attributes each reported as both a raw and a vendor-normalized value. The date is time series data, serial number and model are categorical, and the SMART attributes and capacity are numeric. Coverage is uneven and constrains feature selection for us. Measured across all 27,799,986 rows, only 28 SMART columns are populated on over 90% of rows and 106 on under 1%, though the attributes best supported in the literature all exceed 97%.
+
+The data is published by the operator of the hardware itself, is documented with a published schema, and has been released quarterly since 2016. Backblaze's terms require attribution and permit derivative works. It holds only machine telemetry and no personally identifiable information, and no second dataset is required. One cleaning decision is forced by the data: the fleet includes solid state boot drives across 13 models and 0.78% of rows, and because SSDs report different SMART attributes with different physical meanings they are excluded.
 
 ### Methods
 
-<!--
-Three parts, all required:
-  1. Transformations and preprocessing. The big one is collapsing daily snapshots into a
-     per-drive-per-window table. That is the first engineering milestone, not an afterthought.
-  2. Modeling techniques to be applied. Include the baselines we compare against,
-     not just the models we hope will win.
-  3. How the models will be evaluated, and the evaluation MUST be consistent with the
-     stakeholder needs stated above. This is where the two sections have to agree.
-     Accuracy is meaningless at one failure in 26,000 drive-days. Say why, and say what
-     we use instead.
-No code in the proposal.
--->
+Preprocessing reduces the daily snapshots to a single modeling table. Each daily file is narrowed to about 40 populated columns and concatenated in date order across quarters; each drive's history is then aggregated into one row per drive per 30-day window, summarizing current values, values 30 days prior, and rates of change, alongside age, capacity and model. Each row is labeled 1 if that drive records a failure within the following 30 days. Every feature uses only information available on or before the prediction date; only the label looks forward. Because failures are rare, we keep all positives and sample negatives at about 20 to 1, then recalibrate predicted probabilities against a held-out set that preserves true prevalence.
 
-_To be written._
+Modeling starts from two baselines: the threshold rule operators use today, flagging any non-zero reallocated sector count, and logistic regression on the populated attributes. Against these we evaluate gradient-boosted trees (XGBoost). All splits are chronological and grouped by drive, so no drive appears on both sides.
+
+Evaluation follows directly from stakeholder needs. An operator needs a ranking they can act on within a fixed weekly replacement budget, not a binary alarm, so our primary metrics are precision and recall at that budget: replacing the top N drives per thousand, the share of those replacements genuinely about to fail and the share of all failures caught, each against both baselines. We also report precision-recall AUC rather than ROC AUC, which flatters models on imbalanced data, and a calibration curve. Accuracy is not reported: at one failure per 26,054 drive-days, always predicting "no failure" scores above 99.99%.
 
 ## Project Plan
 
