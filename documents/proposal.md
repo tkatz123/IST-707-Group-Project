@@ -41,7 +41,7 @@ Rewrite it in our own voice rather than pasting it.
 | Name | GitHub ID | Role |
 | --- | --- | --- |
 | Tyler Katz | `tkatz123` | Point of contact, repository owner |
-| Hashim Khan | `TBD` | Team member |
+| Hashim Khan | `mriyer27` | Team member |
 | Mrgaj Iyer | `TBD` | Team member |
 
 <!--
@@ -159,10 +159,10 @@ has to show time for it.
 
 | Period | Activity | Milestone |
 | --- | --- | --- |
-| _dates_ | _what happens_ | _what exists at the end of it_ |
-| _dates_ | _what happens_ | _what exists at the end of it_ |
-| _dates_ | _what happens_ | _what exists at the end of it_ |
-| _dates_ | _what happens_ | _what exists at the end of it_ |
+| Sept 15 – 28 | Acquire and clean the twelve quarters of Backblaze data: download, narrow each daily file to the populated columns, exclude SSD boot drives, and verify SMART attribute coverage. | Cleaned, concatenated 2023–2025 dataset committed to the repo, with a coverage report confirming which attributes clear the 90%/97% thresholds. |
+| Sept 29 – Oct 19 | Build the 30-day windowing and aggregation pipeline (current values, values 30 days prior, rates of change), construct the failure label, and set up the chronological, drive-grouped train/test split. | Full modeling table ready, with the threshold-rule and logistic-regression baselines running end to end on it. |
+| Oct 20 – Nov 9 | Train and tune XGBoost against the baselines; run the manufacturer-bias audit on the missing-column pattern; recalibrate predicted probabilities against a held-out, true-prevalence slice. | XGBoost model compared to both baselines on precision/recall at a fixed replacement budget, plus a written result on whether the model is relying on manufacturer identity rather than sensor health. |
+| Nov 10 – 30 | Finalize evaluation (PR-AUC, calibration curve), do error analysis on missed and caught failures, and draft the full report and figures. | Complete draft report and slides ready for internal team review. |
 | Week of Dec 1 | Final report and presentation | Report submitted |
 
 ## Risks
@@ -178,9 +178,30 @@ that tracks manufacturer rather than chance, so a careless model learns brand in
 Do not minimise these. The rubric rewards identifying them honestly.
 -->
 
-- **[Risk]:** _what could go wrong. **Mitigation:** how we reduce it. **If it fails:** what we do instead._
-- **[Risk]:** _what could go wrong. **Mitigation:** how we reduce it. **If it fails:** what we do instead._
-- **[Risk]:** _what could go wrong. **Mitigation:** how we reduce it. **If it fails:** what we do instead._
+1.  **Missing SMART columns tracking manufacturer instead of chance:** Coverage of the 186 SMART columns is highly uneven, and if which columns are populated correlates with drive manufacturer rather than random missingness, a model can learn to distinguish brands instead of drive health.
+
+
+  **Mitigation:** audit feature importance against drive model/manufacturer directly, and re-run the model with manufacturer-correlated presence indicators removed to see whether performance holds.
+  
+ **If it fails:** restrict the feature set to the handful of attributes with over 97% coverage that are already validated in the literature, and report the resulting drop in discriminative power honestly rather than keeping a brand-driven model.
+ 
+2. **Class imbalance and unreliable probability recalibration:** Failures are extremely rare (1,067 out of nearly 27.8 million drive-days), so we train on a 20:1 sampled subset and recalibrate against a held-out set at true prevalence; if that recalibration doesn't transfer, predicted probabilities could look reasonable internally but mis-rank drives in practice.
+
+ **Mitigation:** validate calibration against a fully unsampled holdout before relying on it, and treat precision/recall at the operational replacement budget, not raw probability, as the primary metric throughout.
+ 
+**If it fails:** drop probability-based claims entirely and report only rank-based precision/recall at budget.
+
+3.   **Distribution shift between training years and the test year:** New drive models enter the fleet over time and SMART reporting can change with firmware, so a model trained on 2023–2024 data may not transfer cleanly to 2025.
+   
+**Mitigation:** check the overlap of drive models between train and test splits before finalizing results, and report performance broken out by model where sample size allows.
+
+**If it fails:** limit conclusions to drive models present in training and disclose the generalization gap for unseen models rather than reporting one blended number.
+
+4. **Data volume outrunning the schedule:** Twelve quarters of daily telemetry is on the order of hundreds of millions of rows before windowing, and if the aggregation pipeline takes longer to build than planned it directly eats into modeling time.
+
+ **Mitigation:** build and test the full pipeline on a single quarter first, before scaling to all twelve, and reserve the first two weeks of the schedule specifically for this step.
+   
+**If it fails:** fall back to a reduced quarter range (e.g., 2024 training, 2025 test only) and disclose the narrower window in the final report.
 
 ## References
 
