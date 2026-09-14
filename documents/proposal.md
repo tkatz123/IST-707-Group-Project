@@ -84,6 +84,8 @@ Data center operators are always concerned about which drives they should replac
 
 Enterprise It teams may use our research to identify the risky drives before they fail and replace them so no unexpected storage outages occur.
 
+Backblaze and similar storage providers care because drive failures can affect service reliability. They need to identify risky drives early so they can prevent avoidable failures.
+
 Drive manufacturers may also use our research in order to test their drives and identify the risky ones and increase their reliability.
 
 
@@ -110,7 +112,7 @@ Footnote syntax, which GitHub renders:
 
 Commonly hard drives are monitored using health and warning levels, and when the levels drop below a certain threshold then the drive is replaced. This is a simple approach and it fails to address those drives that fail without reaching the threshold levels.
 
-There are 2 studies from 2007 that researched real world drive failures. Pinheiro, Weber, and Barroso studied drives at Google and came to a conclusion that drive health readings are able to provide significant information about their failures, however they were unable to predict every failure reliably on their own. Schroeder and Gibson realized that real world failure rates were far more complicated than the manufacturers initially estimated.
+There are 2 studies from 2007 that researched real world drive failures. Pinheiro, Weber, and Barroso studied drives at Google and came to a conclusion that drive health readings are able to provide significant information about their failures, however they were unable to predict every failure reliably on their own.(Pinheiro, Weber and Barroso, n.d.) In another study Schroeder and Gibson realized that real world failure rates were far more complicated than the manufacturers initially estimated.(Schroeder and Gibson, n.d.)
 
 The studies came to a conclusion that a drive can have various warning signs that change over time without affecting any health readings. Our research will address this limitation by using several readings together and predicting the probability of the drive failing within 30 days
 
@@ -130,6 +132,7 @@ Backblaze and similar providers, and drive manufacturers.
 
 - **Data Centers and Cloud Storage Operarors:** They manage large numbers of drives and need to decide which drives to replace first when they have a limited number of replacement drives and maintenance hours.
 - **Enterprise IT Teams:** They manage storage for smaller organizations and need to identify drives that may fail soon so they can avoid unexpected outages.
+- **Backblaze and similar storage providers:** They depend on reliable storage to serve customers and need to identify risky drives early to reduce unexpected failures.
 - **Drive Manufacturers:** They produce the drives and their health-monitoring systems. They need to know which health readings are most useful for identifying future failures and improving drive reliability.
 
 
@@ -221,6 +224,11 @@ Every citation must be real and verified on Google Scholar. The syllabus warns e
 that AI tools invent plausible citations that do not exist, so check each one resolves
 to a real paper before this is submitted.
 -->
+
+Schroeder, B. and Gibson, G. (n.d.). Disk failures in the real world: What does an MTTF of 1,000,000 hours mean to you? [online] Available at: https://www.usenix.org/legacy/event/fast07/tech/schroeder/schroeder.pdf [Accessed 14 Sept. 2026].
+
+Pinheiro, E., Weber, W.-D. and Barroso, L. (n.d.). Failure Trends in a Large Disk Drive Population. [online] Available at: https://www.usenix.org/legacy/event/fast07/tech/full_papers/pinheiro/pinheiro.pdf [Accessed 14 Sept. 2026].
+
 
 [^placeholder]: Author, A., Author, B. "Title." *Venue*, Year. URL
 
