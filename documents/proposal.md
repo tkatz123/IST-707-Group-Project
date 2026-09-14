@@ -33,7 +33,7 @@ Commonly hard drives are monitored using health and warning levels, and when the
 
 There are two studies from 2007 that researched real world drive failures. Pinheiro, Weber, and Barroso studied drives at Google and came to a conclusion that drive health readings are able to provide significant information about their failures, however they were unable to predict every failure reliably on their own.[^pinheiro2007] In another study Schroeder and Gibson realized that real world failure rates were far more complicated than the manufacturers initially estimated.[^schroeder2007]
 
-Together the studies show that a large share of drives fail without any single health reading crossing the threshold that would trigger a replacement, and that warning signs are often visible only as changes over time rather than in one day's values. Our research will address this limitation by using several readings together and predicting the probability of the drive failing within 30 days
+Together the studies show that a large share of drives fail without any single health reading crossing the threshold that would trigger a replacement, and that warning signs are often visible only as changes over time rather than in one day's values. Our research will address this limitation by using several readings together and predicting the probability of the drive failing within 30 days.
 
 ### Stakeholders and their needs
 
