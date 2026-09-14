@@ -41,8 +41,8 @@ Rewrite it in our own voice rather than pasting it.
 | Name | GitHub ID | Role |
 | --- | --- | --- |
 | Tyler Katz | `tkatz123` | Point of contact, repository owner |
-| Hashim Khan | `mriyer27` | Team member |
-| Mrgaj Iyer | `TBD` | Team member |
+| Hashim Khan | `Khan-M-HashimKhan` | Team member |
+| Mrgaj Iyer | `mriyer27` | Team member |
 
 <!--
 The rubric requires full names, every member's GitHub id, and an explicitly named
@@ -68,19 +68,24 @@ Draft answers for all three are in section 3 of the brief.
 
 <!-- Heilmeier 1. Objectives in absolutely no jargon. No "model", no "features", no "classifier". -->
 
-_To be written._
+Our purpose is to predict which hard drives are likely to fail in the next 30 days. This helps the data centers to replace the risky drives before they fail and cause unexpected issues.
 
 ### What is new in our approach, and why do we think it will succeed?
 
 <!-- Heilmeier 3. Brief here. The detail belongs in Data and Methods. The brief argues three points: probability over a window instead of a threshold alarm, sensors used together and over time, and far more labelled data than the 2007 studies had. -->
 
-_To be written._
+We will be ranking drives by how likely is it that they fail in the next 30 days. In order to do this we will look at several health readings and study how they change over time. The data set we have access to has tens of millions of records which puts us a step ahead of previous research done with less data.
 
 ### Who cares, and what difference will it make?
 
 <!-- Heilmeier 4. Name who benefits and what changes for them. This sets up the stakeholder list below, so keep the two consistent. -->
 
-_To be written._
+Data center operators are always concerned about which drives they should replace when they have limited time and limited number of new drives. Our research will help them choose the optimal drives to replace improving the efficiency of decision making and reducing emergency repairs
+
+Enterprise It teams may use our research to identify the risky drives before they fail and replace them so no unexpected storage outages occur.
+
+Drive manufacturers may also use our research in order to test their drives and identify the risky ones and increase their reliability.
+
 
 ## Literature Review
 
