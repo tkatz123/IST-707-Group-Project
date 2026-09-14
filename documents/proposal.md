@@ -108,7 +108,12 @@ Footnote syntax, which GitHub renders:
     [^pinheiro2007]: Author, A., Author, B. "Title." *Venue*, Year. URL
 -->
 
-_To be written._
+Commonly hard drives are monitored using health and warning levels, and when the levels drop below a certain threshold then the drive is replaced. This is a simple approach and it fails to address those drives that fail without reaching the threshold levels.
+
+There are 2 studies from 2007 that researched real world drive failures. Pinheiro, Weber, and Barroso studied drives at Google and came to a conclusion that drive health readings are able to provide significant information about their failures, however they were unable to predict every failure reliably on their own. Schroeder and Gibson realized that real world failure rates were far more complicated than the manufacturers initially estimated.
+
+The studies came to a conclusion that a drive can have various warning signs that change over time without affecting any health readings. Our research will address this limitation by using several readings together and predicting the probability of the drive failing within 30 days
+
 
 ### Stakeholders and their needs
 
@@ -123,10 +128,10 @@ The brief lists four candidates: data center operators, smaller enterprise IT te
 Backblaze and similar providers, and drive manufacturers.
 -->
 
-- **[Stakeholder]:** _why they are a stakeholder, and what they specifically need._
-- **[Stakeholder]:** _why they are a stakeholder, and what they specifically need._
-- **[Stakeholder]:** _why they are a stakeholder, and what they specifically need._
-- **[Stakeholder]:** _why they are a stakeholder, and what they specifically need._
+- **[Data Centers and Cloud Storage Operarors]:** They manage large numbers of drives and need to decide which drives to replace first when they have a limited number of replacement drives and maintenance hours.
+- **[Enterprise IT Teams]:** They manage storage for smaller organizations and need to identify drives that may fail soon so they can avoid unexpected outages.
+- **[Drive Manufacturers]:** They produce the drives and their health-monitoring systems. They need to know which health readings are most useful for identifying future failures and improving drive reliability.
+
 
 ## Data and Methods
 
