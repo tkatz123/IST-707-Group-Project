@@ -128,9 +128,9 @@ The brief lists four candidates: data center operators, smaller enterprise IT te
 Backblaze and similar providers, and drive manufacturers.
 -->
 
-- **[Data Centers and Cloud Storage Operarors]:** They manage large numbers of drives and need to decide which drives to replace first when they have a limited number of replacement drives and maintenance hours.
-- **[Enterprise IT Teams]:** They manage storage for smaller organizations and need to identify drives that may fail soon so they can avoid unexpected outages.
-- **[Drive Manufacturers]:** They produce the drives and their health-monitoring systems. They need to know which health readings are most useful for identifying future failures and improving drive reliability.
+- **Data Centers and Cloud Storage Operarors:** They manage large numbers of drives and need to decide which drives to replace first when they have a limited number of replacement drives and maintenance hours.
+- **Enterprise IT Teams:** They manage storage for smaller organizations and need to identify drives that may fail soon so they can avoid unexpected outages.
+- **Drive Manufacturers:** They produce the drives and their health-monitoring systems. They need to know which health readings are most useful for identifying future failures and improving drive reliability.
 
 
 ## Data and Methods
