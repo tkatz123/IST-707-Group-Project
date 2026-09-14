@@ -18,7 +18,7 @@ Every hard drive in a data center reports daily records of its own condition. We
 
 ### What is new in our approach, and why do we think it will succeed?
 
-Currently, data center operators wait for one reading to cross one line before acting on replacting a drive. We aim to change this approach by providing a means of proactively replacing hard drives at high risk to fail. First, we ask how likely a drive is to fail inside a 30-day window rather than whether it has tripped an alarm today, which gives operators a ranked list instead of a yes or no. Additionally, we have far more evidence than the studies that defined this problem. The two 2007 papers below worked with roughly 100,000 drives, the Backblaze archive which we are using gives us about 28 million daily records in a single quarter, with the failures labeled by the operator of the hardware itself. Leveraging the masssive amount of data available to us will help us to create a better performing, and more usable model.
+Currently, data center operators wait for one reading to cross one line before acting on replacing a drive. We aim to change this approach by providing a means of proactively replacing hard drives at high risk of failing. We ask how likely a drive is to fail inside a 30-day window rather than whether it has tripped an alarm today, which gives operators a ranked list instead of a yes or no. Additionally, we have far more evidence than the studies that defined this problem. The two 2007 papers below worked with roughly 100,000 drives, while the Backblaze archive which we are using gives us about 28 million daily records in a single quarter, with the failures labeled by the operator of the hardware itself. Leveraging the massive amount of data available to us will help us to create a better performing and more usable model.
 
 
 ### Who cares, and what difference will it make?
@@ -50,9 +50,9 @@ The project uses the Backblaze Drive Stats dataset, a public record of daily tel
 
 We inspected a full quarter before committing to it. Q1 2025 holds 90 daily CSV files covering January 1 through March 31, 2025, with no missing or duplicate days, totaling 27,799,986 rows across 318,426 distinct drives, of which 1,067 recorded a failure. Each row is one drive observed on one calendar day. The project will use twelve quarters spanning 2023 through 2025, training on 2023 and 2024 and evaluating on 2025, since one quarter leaves too little room for a 30-day window and a later test period.
 
-Each row contains 197 columns: 11 identifying and administrative fields (date, serial number, model, capacity, failure flag, location) and 186 SMART sensor columns, being 93 self-diagnostic attributes each reported as both a raw and a vendor-normalized value. The date is time series data, serial number and model are categorical, and the SMART attributes and capacity are numeric. Coverage is uneven and constrains feature selection for us. Measured across all 27,799,986 rows, only 28 SMART columns are populated on over 90% of rows and 106 on under 1%, though the attributes best supported in the literature all exceed 97%.
+Each row contains 197 columns: 11 identifying and administrative fields and 186 SMART sensor columns, being 93 attributes reported as both raw and vendor-normalized values. Model and serial number are categorical, date is temporal, and capacity and the SMART attributes are numeric. Coverage is uneven: 28 SMART columns are populated on over 90% of rows and 106 on under 1%, while the attributes best supported in the literature exceed 97%.
 
-The data is published by the operator of the hardware itself, is documented with a published schema, and has been released quarterly since 2016. Backblaze's terms require attribution and permit derivative works. It holds only machine telemetry and no personally identifiable information, and no second dataset is required. One cleaning decision is forced by the data: the fleet includes solid state boot drives across 13 models and 0.78% of rows, and because SSDs report different SMART attributes with different physical meanings they are excluded.
+The data is published by the operator of the hardware itself, is documented with a published schema, and has been released quarterly since 2016. Backblaze's terms require attribution and permit derivative works. It holds only machine telemetry and no personally identifiable information, and no second dataset is required. Solid state boot drives, 13 models and 0.78% of rows, are excluded because they report different SMART attributes with different physical meanings.
 
 ### Methods
 
@@ -97,8 +97,6 @@ Evaluation follows directly from stakeholder needs. An operator needs a ranking 
     **Mitigation:** build and test the full pipeline on a single quarter first, before scaling to all twelve, and reserve the first two weeks of the schedule specifically for this step.
 
     **If it fails:** fall back to a reduced quarter range (e.g., 2024 training, 2025 test only) and disclose the narrower window in the final report.
-
-## References
 
 [^pinheiro2007]: Pinheiro, E., Weber, W.-D. and Barroso, L. A. "Failure Trends in a Large Disk Drive Population." *Proceedings of the 5th USENIX Conference on File and Storage Technologies (FAST '07)*, 2007. https://www.usenix.org/legacy/event/fast07/tech/full_papers/pinheiro/pinheiro.pdf
 
