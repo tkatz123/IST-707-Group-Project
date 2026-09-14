@@ -1,40 +1,4 @@
-<!--
-WORKING TEMPLATE. Delete this comment block before submitting.
-
-IST 707 project proposal. Due Tuesday, September 15, 2026.
-Deliverable: this file, proposal.md, in this repository, with McSweeney (pjmcswee) added as a collaborator.
-
-HARD LIMIT: two to three pages. Shorter is allowed. Longer is not.
-Rough budget to stay inside it: Introduction ~400 words, Literature Review ~450 words
-(stakeholders included), Data and Methods ~450 words, Risks ~300 words, plus the plan table.
-
-GRADING, 50 points:
-  10  every listed section present. Presence only. Quality is not checked here.
-      People lose these points purely by leaving a section out. Never delete a heading.
-  10  stakeholders and their needs clearly identified (they live in the Literature Review).
-  20  the five Heilmeier Catechism questions answered effectively.
-  10  plan is feasible with enough detail to give confidence.
-
-WHO WRITES WHAT, agreed September 11, 2026:
-  Hashim Khan  -> Introduction, Literature Review
-  Tyler Katz   -> Data and Methods
-  Mrgaj Iyer   -> Project Plan, Risks
-
-TWO STANDING RULES FROM THE RUBRIC:
-  1. Weekly commit history is inspected and graded. Commit early, commit often,
-     and make sure the work is visibly spread across all three of us.
-  2. Citations must be real and must use GitHub footnote syntax. Find them on
-     Google Scholar. Do not cite anything secondhand out of the project brief.
-
-SOURCE MATERIAL: IST707_Project_Brief_DriveFailure.docx, one directory up from the repo.
-It holds the verified data numbers, draft answers to all five Heilmeier questions,
-and seven risks with mitigations. It is working material, not submission text.
-Rewrite it in our own voice rather than pasting it.
--->
-
 # Predicting Hard Drive Failure from Fleet Telemetry
-
-<!-- Working title. Short, and enough for McSweeney to know roughly what this is. Change it if the team prefers something else. -->
 
 ## Team
 
@@ -44,101 +8,41 @@ Rewrite it in our own voice rather than pasting it.
 | Hashim Khan | `Khan-M-HashimKhan` | Team member |
 | Mrgaj Iyer | `mriyer27` | Team member |
 
-<!--
-The rubric requires full names, every member's GitHub id, and an explicitly named
-point of contact who owns the repository.
-Tyler is listed as point of contact because he created the repo. Say so if you want it changed.
-BLOCKER: two GitHub ids are still missing and the rubric asks for them by name.
-Fill them in and add all three plus pjmcswee as collaborators before Tuesday.
--->
-
 **Point of contact:** Tyler Katz.
 
 ## Introduction
 
-<!--
-OWNER: Hashim Khan.
-Three of the five Heilmeier questions get answered here. Keep the three sub-answers
-distinct so a grader can find each one. No jargon at all in the first one: write it
-so someone outside the class understands what we are doing.
-Draft answers for all three are in section 3 of the brief.
--->
-
 ### What are we trying to do?
 
-<!-- Heilmeier 1. Objectives in absolutely no jargon. No "model", no "features", no "classifier". -->
-
-Our purpose is to predict which hard drives are likely to fail in the next 30 days. This helps the data centers to replace the risky drives before they fail and cause unexpected issues.
+Every hard drive in a data center reports daily records of its own condition. We are trying to leverage that data to predict which hard drives are likely to fail in the next 30 days. This helps the data centers to replace the risky drives before they fail and cause unexpected issues.
 
 ### What is new in our approach, and why do we think it will succeed?
 
-<!-- Heilmeier 3. Brief here. The detail belongs in Data and Methods. The brief argues three points: probability over a window instead of a threshold alarm, sensors used together and over time, and far more labelled data than the 2007 studies had. -->
+Currently, data center operators wait for one reading to cross one line before acting on replacting a drive. We aim to change this approach by providing a means of proactively replacing hard drives at high risk to fail. First, we ask how likely a drive is to fail inside a 30-day window rather than whether it has tripped an alarm today, which gives operators a ranked list instead of a yes or no. Additionally, we have far more evidence than the studies that defined this problem. The two 2007 papers below worked with roughly 100,000 drives, the Backblaze archive which we are using gives us about 28 million daily records in a single quarter, with the failures labeled by the operator of the hardware itself. Leveraging the masssive amount of data available to us will help us to create a better performing, and more usable model.
 
-We will be ranking drives by how likely is it that they fail in the next 30 days. In order to do this we will look at several health readings and study how they change over time. The data set we have access to has tens of millions of records which puts us a step ahead of previous research done with less data.
 
 ### Who cares, and what difference will it make?
 
-<!-- Heilmeier 4. Name who benefits and what changes for them. This sets up the stakeholder list below, so keep the two consistent. -->
-
-Data center operators are always concerned about which drives they should replace when they have limited time and limited number of new drives. Our research will help them choose the optimal drives to replace improving the efficiency of decision making and reducing emergency repairs
-
-Enterprise It teams may use our research to identify the risky drives before they fail and replace them so no unexpected storage outages occur.
-
-Backblaze and similar storage providers care because drive failures can affect service reliability. They need to identify risky drives early so they can prevent avoidable failures.
-
-Drive manufacturers may also use our research in order to test their drives and identify the risky ones and increase their reliability.
-
+Data center operators and enterprise IT teams carry the cost of drive failure today, and both replace hardware under a fixed budget of spare drives and maintenance hours. A ranking of which drives are most likely to fail next turns that decision from reactive into planned work, reducing emergency repairs and unexpected storage outages. Storage providers such as Backblaze benefit through service reliability, and drive manufacturers benefit from knowing which health readings actually predict failure. Each group and what it specifically needs is set out in the stakeholder section below.
 
 ## Literature Review
 
-<!--
-OWNER: Hashim Khan.
-This section carries 20 of the 50 points between the Heilmeier answer and the stakeholders,
-so it is the highest-value section in the document.
--->
-
 ### How is it done today, and what are the limits of current practice?
-
-<!--
-Heilmeier 2. Review what has already been tried, with real citations, or cite literature
-showing the method is novel. Google Scholar.
-The two anchor papers are both from 2007 and both study large real fleets:
-Pinheiro, Weber and Barroso (Google), and Schroeder and Gibson (Carnegie Mellon).
-Look them up properly and cite the real records. Do not take the details from the brief.
-Footnote syntax, which GitHub renders:
-    ... a large fraction of drives fail with no prior warning.[^pinheiro2007]
-    [^pinheiro2007]: Author, A., Author, B. "Title." *Venue*, Year. URL
--->
 
 Commonly hard drives are monitored using health and warning levels, and when the levels drop below a certain threshold then the drive is replaced. This is a simple approach and it fails to address those drives that fail without reaching the threshold levels.
 
-There are 2 studies from 2007 that researched real world drive failures. Pinheiro, Weber, and Barroso studied drives at Google and came to a conclusion that drive health readings are able to provide significant information about their failures, however they were unable to predict every failure reliably on their own.(Pinheiro, Weber and Barroso, n.d.) In another study Schroeder and Gibson realized that real world failure rates were far more complicated than the manufacturers initially estimated.(Schroeder and Gibson, n.d.)
+There are two studies from 2007 that researched real world drive failures. Pinheiro, Weber, and Barroso studied drives at Google and came to a conclusion that drive health readings are able to provide significant information about their failures, however they were unable to predict every failure reliably on their own.[^pinheiro2007] In another study Schroeder and Gibson realized that real world failure rates were far more complicated than the manufacturers initially estimated.[^schroeder2007]
 
-The studies came to a conclusion that a drive can have various warning signs that change over time without affecting any health readings. Our research will address this limitation by using several readings together and predicting the probability of the drive failing within 30 days
-
+Together the studies show that a large share of drives fail without any single health reading crossing the threshold that would trigger a replacement, and that warning signs are often visible only as changes over time rather than in one day's values. Our research will address this limitation by using several readings together and predicting the probability of the drive failing within 30 days
 
 ### Stakeholders and their needs
 
-<!--
-Worth 10 points on its own. For each stakeholder, state three things explicitly:
-who they are, why they are a stakeholder, and what they specifically need.
-McSweeney's own example of the shape he wants: "a city traffic planner needs to know about
-temporal variation in pedestrian traffic and office building density in order to place traffic signals."
-No interviews expected, but some online research is.
-Whatever we say they need has to match what the evaluation in Data and Methods measures.
-The brief lists four candidates: data center operators, smaller enterprise IT teams,
-Backblaze and similar providers, and drive manufacturers.
--->
-
-- **Data Centers and Cloud Storage Operarors:** They manage large numbers of drives and need to decide which drives to replace first when they have a limited number of replacement drives and maintenance hours.
+- **Data Centers and Cloud Storage Operators:** They manage large numbers of drives and need to decide which drives to replace first when they have a limited number of replacement drives and maintenance hours.
 - **Enterprise IT Teams:** They manage storage for smaller organizations and need to identify drives that may fail soon so they can avoid unexpected outages.
 - **Backblaze and similar storage providers:** They depend on reliable storage to serve customers and need to identify risky drives early to reduce unexpected failures.
 - **Drive Manufacturers:** They produce the drives and their health-monitoring systems. They need to know which health readings are most useful for identifying future failures and improving drive reliability.
 
-
 ## Data and Methods
-
-<!-- OWNER: Tyler Katz. -->
 
 ### Data
 
@@ -160,19 +64,9 @@ Evaluation follows directly from stakeholder needs. An operator needs a ranking 
 
 ## Project Plan
 
-<!--
-OWNER: Mrgaj Iyer.
-Roughly two months of work. Final report is due the first week of December.
-McSweeney explicitly suggests a table, so use one. 10 points ride on this looking feasible
-with enough detail to give confidence, which means real activities and a checkable milestone
-per period, not "work on model" repeated five times.
-Sanity check it against the risks section: if the data volume risk is real, the schedule
-has to show time for it.
--->
-
 | Period | Activity | Milestone |
 | --- | --- | --- |
-| Sept 15 – 28 | Acquire and clean the twelve quarters of Backblaze data: download, narrow each daily file to the populated columns, exclude SSD boot drives, and verify SMART attribute coverage. | Cleaned, concatenated 2023–2025 dataset committed to the repo, with a coverage report confirming which attributes clear the 90%/97% thresholds. |
+| Sept 15 – 28 | Acquire and clean the twelve quarters of Backblaze data: download, narrow each daily file to the populated columns, exclude SSD boot drives, and verify SMART attribute coverage. | Cleaned, concatenated 2023–2025 dataset built and stored locally, with the download and cleaning scripts committed to the repo alongside a coverage report confirming which attributes clear the 90%/97% thresholds. |
 | Sept 29 – Oct 19 | Build the 30-day windowing and aggregation pipeline (current values, values 30 days prior, rates of change), construct the failure label, and set up the chronological, drive-grouped train/test split. | Full modeling table ready, with the threshold-rule and logistic-regression baselines running end to end on it. |
 | Oct 20 – Nov 9 | Train and tune XGBoost against the baselines; run the manufacturer-bias audit on the missing-column pattern; recalibrate predicted probabilities against a held-out, true-prevalence slice. | XGBoost model compared to both baselines on precision/recall at a fixed replacement budget, plus a written result on whether the model is relying on manufacturer identity rather than sensor health. |
 | Nov 10 – 30 | Finalize evaluation (PR-AUC, calibration curve), do error analysis on missed and caught failures, and draft the full report and figures. | Complete draft report and slides ready for internal team review. |
@@ -180,67 +74,40 @@ has to show time for it.
 
 ## Risks
 
-<!--
-OWNER: Mrgaj Iyer.
-This is Heilmeier 5, so it is worth real points rather than being a formality.
-For each risk give three things: the pitfall, how we mitigate it, and what we do if
-that part of the plan fails outright.
-Section 4 of the brief has seven of them written out. The most interesting one, and the
-one most likely to impress, is that the missing sensor columns are missing in a pattern
-that tracks manufacturer rather than chance, so a careless model learns brand instead of health.
-Do not minimise these. The rubric rewards identifying them honestly.
--->
+1. **Missing SMART columns tracking manufacturer instead of chance:** Coverage of the 186 SMART columns is highly uneven, and if which columns are populated correlates with drive manufacturer rather than random missingness, a model can learn to distinguish brands instead of drive health.
 
-1.  **Missing SMART columns tracking manufacturer instead of chance:** Coverage of the 186 SMART columns is highly uneven, and if which columns are populated correlates with drive manufacturer rather than random missingness, a model can learn to distinguish brands instead of drive health.
+    **Mitigation:** audit feature importance against drive model/manufacturer directly, and re-run the model with manufacturer-correlated presence indicators removed to see whether performance holds.
 
+    **If it fails:** restrict the feature set to the handful of attributes with over 97% coverage that are already validated in the literature, and report the resulting drop in discriminative power honestly rather than keeping a brand-driven model.
 
-  **Mitigation:** audit feature importance against drive model/manufacturer directly, and re-run the model with manufacturer-correlated presence indicators removed to see whether performance holds.
-  
- **If it fails:** restrict the feature set to the handful of attributes with over 97% coverage that are already validated in the literature, and report the resulting drop in discriminative power honestly rather than keeping a brand-driven model.
- 
-2. **Class imbalance and unreliable probability recalibration:** Failures are extremely rare (1,067 out of nearly 27.8 million drive-days), so we train on a 20:1 sampled subset and recalibrate against a held-out set at true prevalence; if that recalibration doesn't transfer, predicted probabilities could look reasonable internally but mis-rank drives in practice.
+2. **Class imbalance and unreliable probability recalibration:** Failures are extremely rare (1,067 out of nearly 27.8 million drive-days), so we train on a 20:1 sampled subset and recalibrate against a held-out set at true prevalence; if that recalibration does not transfer, predicted probabilities could look reasonable internally but mis-rank drives in practice.
 
- **Mitigation:** validate calibration against a fully unsampled holdout before relying on it, and treat precision/recall at the operational replacement budget, not raw probability, as the primary metric throughout.
- 
-**If it fails:** drop probability-based claims entirely and report only rank-based precision/recall at budget.
+    **Mitigation:** validate calibration against a fully unsampled holdout before relying on it, and treat precision/recall at the operational replacement budget, not raw probability, as the primary metric throughout.
 
-3.   **Distribution shift between training years and the test year:** New drive models enter the fleet over time and SMART reporting can change with firmware, so a model trained on 2023–2024 data may not transfer cleanly to 2025.
-   
-**Mitigation:** check the overlap of drive models between train and test splits before finalizing results, and report performance broken out by model where sample size allows.
+    **If it fails:** drop probability-based claims entirely and report only rank-based precision/recall at budget.
 
-**If it fails:** limit conclusions to drive models present in training and disclose the generalization gap for unseen models rather than reporting one blended number.
+3. **Distribution shift between training years and the test year:** New drive models enter the fleet over time and SMART reporting can change with firmware, so a model trained on 2023–2024 data may not transfer cleanly to 2025.
+
+    **Mitigation:** check the overlap of drive models between train and test splits before finalizing results, and report performance broken out by model where sample size allows.
+
+    **If it fails:** limit conclusions to drive models present in training and disclose the generalization gap for unseen models rather than reporting one blended number.
 
 4. **Data volume outrunning the schedule:** Twelve quarters of daily telemetry is on the order of hundreds of millions of rows before windowing, and if the aggregation pipeline takes longer to build than planned it directly eats into modeling time.
 
- **Mitigation:** build and test the full pipeline on a single quarter first, before scaling to all twelve, and reserve the first two weeks of the schedule specifically for this step.
-   
-**If it fails:** fall back to a reduced quarter range (e.g., 2024 training, 2025 test only) and disclose the narrower window in the final report.
+    **Mitigation:** build and test the full pipeline on a single quarter first, before scaling to all twelve, and reserve the first two weeks of the schedule specifically for this step.
+
+    **If it fails:** fall back to a reduced quarter range (e.g., 2024 training, 2025 test only) and disclose the narrower window in the final report.
 
 ## References
 
-<!--
-GitHub renders footnotes wherever they are defined, but keeping them here keeps the file tidy.
-Every citation must be real and verified on Google Scholar. The syllabus warns explicitly
-that AI tools invent plausible citations that do not exist, so check each one resolves
-to a real paper before this is submitted.
--->
+[^pinheiro2007]: Pinheiro, E., Weber, W.-D. and Barroso, L. A. "Failure Trends in a Large Disk Drive Population." *Proceedings of the 5th USENIX Conference on File and Storage Technologies (FAST '07)*, 2007. https://www.usenix.org/legacy/event/fast07/tech/full_papers/pinheiro/pinheiro.pdf
 
-Schroeder, B. and Gibson, G. (n.d.). Disk failures in the real world: What does an MTTF of 1,000,000 hours mean to you? [online] Available at: https://www.usenix.org/legacy/event/fast07/tech/schroeder/schroeder.pdf [Accessed 14 Sept. 2026].
-
-Pinheiro, E., Weber, W.-D. and Barroso, L. (n.d.). Failure Trends in a Large Disk Drive Population. [online] Available at: https://www.usenix.org/legacy/event/fast07/tech/full_papers/pinheiro/pinheiro.pdf [Accessed 14 Sept. 2026].
-
-
-[^placeholder]: Author, A., Author, B. "Title." *Venue*, Year. URL
+[^schroeder2007]: Schroeder, B. and Gibson, G. A. "Disk Failures in the Real World: What Does an MTTF of 1,000,000 Hours Mean to You?" *Proceedings of the 5th USENIX Conference on File and Storage Technologies (FAST '07)*, 2007. https://www.usenix.org/legacy/event/fast07/tech/schroeder/schroeder.pdf
 
 ---
 
-<!--
-REQUIRED BY THE SYLLABUS. Do not delete this. Edit it to say what actually happened.
-The AI use policy permits AI tools but requires all submitted work to document if and how
-they were used, identifying AI-generated writing in a footnote or endnote. Failure to
-acknowledge it counts as academic dishonesty.
-Separately: grading is contingent on being able to verbally support this work in class,
-so every one of us needs to be able to defend our own section out loud.
--->
+**Use of AI tools:**
 
-**Use of AI tools:** _state here which tools were used, by whom, and for what (for example: structuring this document, editing prose, locating literature). Verify before submission that this describes what actually happened._
+- **Tyler Katz:** used Claude to build the section template and rubric scaffolding for this document, and to cut the Data and Methods section down from its original draft of roughly 900 words to about 560 words. Also used it for a copy-editing pass over the finished draft, covering citation formatting, list formatting, typos, and removing a duplicated passage.
+- **Hashim Khan:** used an AI assistant to summarize the two 2007 papers cited in the Literature Review. The Introduction and Literature Review sections were written without it.
+- **Mrgaj Iyer:** used an AI assistant for ideation on the Project Plan and Risks sections. Both sections were written without it.
