@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+.DS_Store
+
+# Project data. Nothing under data/ is committed. The raw archives, the
+# narrowed Parquet and the stage 1 scratch are all reproducible from the
+# scripts in this repo. The three modeling files are distributed to the team
+# directly, because modeling_test.parquet is 134 MB and GitHub rejects any
+# file over 100 MB.
+data/
+
+.vscode/
+

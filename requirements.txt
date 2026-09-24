@@ -1,0 +1,15 @@
+# IST 707 group project: hard drive failure prediction from Backblaze Drive Stats.
+# Pinned to minor version so all three of us resolve the same behavior.
+
+# Data handling
+pandas~=2.2
+numpy~=2.1
+pyarrow~=17.0          # Parquet read/write, and the CSV reader used on the daily files
+
+# Modeling
+scikit-learn~=1.5
+xgboost~=2.1
+
+# Figures and notebooks
+matplotlib~=3.9
+jupyterlab~=4.2
