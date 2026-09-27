@@ -56,6 +56,17 @@ Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
   failed during the window itself, which is needed to label the previous window
   and is zero on all but 6 of 4 million rows afterwards. A column named that,
   sitting beside the label, is an invitation to train on it.
+- Split the remaining work with the team: Hashim takes EDA, Mrgaj takes the
+  baseline models, Tyler takes final tuning and evaluation. Recorded in
+  WORKPLAN.md.
+- Added `documents/data_card.md`: every column in the modeling table explained,
+  the size of each dataset, and what to drop before fitting.
+- **Found four SSD models that got past the SSD filter** while writing the data
+  card: `DELLBOSS VD`, `WDC WDS250G2B0A`, `Seagate IronWolf ZA250NM10002` and
+  `WD Blue SA510 2.5 250GB`. None has "SSD" or a Micron part number in its model
+  string. They account for 500 training rows (18 positives) and 870 calibration
+  rows, and they move the true SSD share to **22 models and 1.142% of rows**, not
+  the 18 models and 0.864% recorded above.
 
 ### Hashim Khan
 

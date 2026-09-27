@@ -44,11 +44,11 @@ ID_COLUMNS = {"date", "serial_number", "model", "capacity_bytes", "failure"}
 # the model string. The proposal excludes SSD boot drives because they report
 # different SMART attributes with different physical meanings.
 #
-# "ssd" alone catches only 14 of the 18 SSD models in the 2023-2025 fleet. The
+# "ssd" alone catches only 14 of the 22 SSD models in the 2023-2025 fleet. The
 # Micron part numbers carry no "SSD" in the model string at all, and one of them
 # ("Micron 5300 MTFDDAK480TDS") has the part number mid-name rather than at the
 # start, so these are substring matches rather than prefixes.
-SSD_MARKERS = ("ssd", "mtfddav", "mtfddak")
+SSD_MARKERS = ("ssd", "mtfddav", "mtfddak", "dellboss", "wds250g2b0a", "za250nm", "sa510")
 
 # Progress is printed every Nth daily file. Twelve quarters is about 1,100 files
 # across several workers, so printing every one buries the summary.

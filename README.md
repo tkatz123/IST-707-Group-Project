@@ -33,6 +33,7 @@ evaluate on 2025.
 
 ```
 documents/proposal.md         The approved proposal
+documents/data_card.md        Every column explained, dataset sizes, what to drop
 eda/column_coverage.py        Measures column coverage and schema stability
 eda/locked_columns.txt        The 33 columns the pipeline narrows to
 eda/coverage_all_quarters.csv Coverage pooled across all twelve quarters
@@ -150,6 +151,9 @@ Plus `capacity_bytes`, `model`, `days_observed`, `days_span` and
 **Not features, drop these before fitting:** `serial_number`, `window`,
 `window_first_date`, `window_last_date`, and `label`.
 
+What every column means, and the rows and values to clean before fitting, is in
+[documents/data_card.md](documents/data_card.md).
+
 ### What is guaranteed about the table
 
 - **Only the label looks forward.** Every feature is computed from readings inside
@@ -193,7 +197,9 @@ df = pd.read_parquet("data/processed", columns=["date", "serial_number", "model"
 
 - **SSD boot drives are excluded**, 18 models and 0.864% of rows. Four Micron
   models carry no "SSD" in their model string, and one has the part number
-  mid-name, so the filter matches substrings rather than prefixes.
+  mid-name, so the filter matches substrings rather than prefixes. **Four more
+  SSD models got past this filter** and are still in the modeling table; the
+  list is in [documents/data_card.md](documents/data_card.md).
 - **Normalized SMART values are stored as float32, raw values as float64.**
   Normalized readings are bounded 0 to 253. Raw readings are lifetime counters
   reaching the trillions, and float32 stops representing integers exactly above

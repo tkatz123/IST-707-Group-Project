@@ -4,7 +4,7 @@ Where the project is going. Completed work is recorded in
 [WORKLOG.md](WORKLOG.md), and the approved scope is in
 [documents/proposal.md](documents/proposal.md).
 
-**Last updated:** September 24, 2026
+**Last updated:** September 27, 2026
 
 ## Status
 
@@ -21,9 +21,23 @@ Where the project is going. Completed work is recorded in
 Only two class meetings fall between now and the midterm presentation, because
 October 13 is fall break. The midterm rubric is expected September 29.
 
-## Current phase: baselines
+## Who owns what
 
-The modeling table is built. What remains in this milestone is the two baselines.
+The remaining work is split three ways. Recorded September 27, 2026.
+
+| Person | Owns | Covers |
+| --- | --- | --- |
+| Hashim Khan | EDA | Exploratory analysis of the modeling table, which the project spec requires. Task 8. |
+| Mrgaj Iyer | Baseline models | The threshold rule and logistic regression. Tasks 5 and 6. |
+| Tyler Katz | Final tuning and evaluation | XGBoost, tuning, calibration against `modeling_calib.parquet`, and the final evaluation on test. The Nov 9 and Nov 30 milestones. |
+
+Column meanings, dataset sizes and what to drop before fitting are in
+[documents/data_card.md](documents/data_card.md). Read it before loading the data.
+
+## Current phase: EDA and baselines
+
+The modeling table is built. What remains in this milestone is EDA and the two
+baselines, which can run in parallel.
 
 | # | Task | Owner | State |
 | --- | --- | --- | --- |
@@ -31,9 +45,14 @@ The modeling table is built. What remains in this milestone is the two baselines
 | 2 | Construct the label: failure within the following 30 days | Tyler | Done |
 | 3 | Chronological, drive-grouped train/test split | Tyler | Done, see D2 |
 | 4 | Keep all positives, sample negatives at 20:1 | Tyler | Done, training split only |
-| 5 | Baseline 1: the threshold rule operators use today, any non-zero SMART 5 | TBD | Not started |
-| 6 | Baseline 2: logistic regression on the populated attributes | TBD | Not started |
+| 5 | Baseline 1: the threshold rule operators use today, any non-zero SMART 5 | Mrgaj | Not started |
+| 6 | Baseline 2: logistic regression on the populated attributes | Mrgaj | Not started |
 | 7 | Hold out an unsampled, true-prevalence slice for recalibration | Tyler | Done, `modeling_calib.parquet` |
+| 8 | EDA on the modeling table (train and calib only, not test) | Hashim | Not started |
+
+**Open: four SSD models got past the SSD filter**, 500 training rows and 870
+calibration rows. Until the pipeline is fixed and rebuilt, drop them by model name
+at load time. The list is in [documents/data_card.md](documents/data_card.md).
 
 ### The modeling table
 
@@ -101,7 +120,8 @@ function chapter 2 reaches for on every model it fits.
 - **Logistic regression needs both.** The sensors have genuine missing values, and
   the raw counters span many orders of magnitude (power-on hours in the tens of
   thousands next to reallocated sector counts in the single digits).
-- **`model` is a string with 94 categories.** `ColumnTransformer` with one-hot is
+- **`model` is a string with 68 categories in train** (94 across the whole fleet,
+  so test may hold models train never saw). `ColumnTransformer` with one-hot is
   the straightforward choice. **Avoid target encoding**, which fits on the label
   and leaks unless the folds are handled carefully.
 
