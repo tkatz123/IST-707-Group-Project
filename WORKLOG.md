@@ -3,6 +3,36 @@
 What actually got done, newest week first. One entry per week, per person.
 Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
+## Week of September 29 to October 5, 2026
+
+### Tyler Katz
+
+- **Fixed the negative-sampling seed** in `scripts/build_modeling_table.py`. It
+  mixed the seed with Python's `hash()`, which changes every time Python starts,
+  so each rebuild drew a different set of training negatives. Replaced with a
+  fixed seed of 42.
+- **Rebuilt the modeling table and verified it is reproducible.** A second run
+  into a separate folder produced a training file identical to the first
+  (`DataFrame.equals`). Train 169,827 rows (8,087 positives), calib 297,009
+  (328), test 3,521,973 (3,722). The difference from the September 27 figures is
+  exactly the four SSD models removed that day.
+- Checked the rebuilt training file for data quality before EDA starts. The notes
+  are in `documents/data_card.md` under "Worth knowing before EDA".
+- Moved the EDA output files into `eda/outputs/` and updated the paths in
+  `eda/column_coverage.py`, `scripts/build_dataset.py` and the README. Re-ran both
+  scripts on Q1 2023 to confirm they still work: the column list and the
+  narrowed Parquet matched the committed versions exactly.
+- Updated the README, WORKPLAN and data card to the rebuilt numbers. Several
+  still carried figures from before the SSD fix.
+
+### Hashim Khan
+
+- _To fill in._
+
+### Mrgaj Iyer
+
+- _To fill in._
+
 ## Week of September 22 to 28, 2026
 
 ### Tyler Katz
@@ -67,6 +97,8 @@ Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
   string. They account for 500 training rows (18 positives) and 870 calibration
   rows, and they move the true SSD share to **22 models and 1.142% of rows**, not
   the 18 models and 0.864% recorded above.
+- **Fixed the SSD filter and rebuilt the pipeline the same day.** All 22 SSD
+  models are now excluded, and the narrowed dataset holds 310,866,734 rows.
 
 ### Hashim Khan
 

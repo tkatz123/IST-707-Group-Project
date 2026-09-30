@@ -20,7 +20,7 @@ Usage:
 
 Example:
     python scripts/build_dataset.py data/raw/*.zip \
-        --columns eda/locked_columns.txt \
+        --columns eda/outputs/locked_columns.txt \
         --out-dir data/processed
 """
 
@@ -66,7 +66,7 @@ def parse_args():
     parser.add_argument(
         "--columns",
         type=pathlib.Path,
-        default=pathlib.Path("eda/locked_columns.txt"),
+        default=pathlib.Path("eda/outputs/locked_columns.txt"),
         help="Locked column list from eda/column_coverage.py --columns-out.",
     )
     parser.add_argument(

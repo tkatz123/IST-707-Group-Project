@@ -27,10 +27,10 @@ Usage:
 
 Example:
     python eda/column_coverage.py data/raw/*.zip \
-        --out eda/coverage_all_quarters.csv \
-        --per-quarter-out eda/coverage_by_quarter.csv \
-        --columns-out eda/locked_columns.txt \
-        --models-out eda/models_all_quarters.csv
+        --out eda/outputs/coverage_all_quarters.csv \
+        --per-quarter-out eda/outputs/coverage_by_quarter.csv \
+        --columns-out eda/outputs/locked_columns.txt \
+        --models-out eda/outputs/models_all_quarters.csv
 """
 
 import argparse
@@ -75,7 +75,7 @@ def parse_args():
     parser.add_argument(
         "--out",
         type=pathlib.Path,
-        default=pathlib.Path("eda/coverage_all_quarters.csv"),
+        default=pathlib.Path("eda/outputs/coverage_all_quarters.csv"),
         help="Where to write the pooled per-column coverage table.",
     )
     parser.add_argument(

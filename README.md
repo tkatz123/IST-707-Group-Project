@@ -19,10 +19,10 @@ telemetry and no personally identifiable information.
 | | |
 | --- | --- |
 | Raw drive-days | 314,457,081 |
-| After excluding SSD boot drives | 311,740,279 |
-| Distinct drive models | 94 |
+| After excluding SSD boot drives | 310,866,734 |
+| Distinct drive models | 94 raw, 72 after excluding SSDs |
 | Columns kept | 33 (5 identifiers, 14 SMART attributes as raw and normalized) |
-| Narrowed dataset on disk | 5.7 GB as Parquet |
+| Narrowed dataset on disk | 6.1 GB as Parquet |
 
 **The schema drifts across this range.** Q1 2023 ships 179 columns, Q2 2023 ships
 186, Q3 2023 through Q1 2024 ship 193, and Q2 2024 onward ship 197. Only the 179
@@ -35,10 +35,10 @@ evaluate on 2025.
 documents/proposal.md         The approved proposal
 documents/data_card.md        Every column explained, dataset sizes, what to drop
 eda/column_coverage.py        Measures column coverage and schema stability
-eda/locked_columns.txt        The 33 columns the pipeline narrows to
-eda/coverage_all_quarters.csv Coverage pooled across all twelve quarters
-eda/coverage_by_quarter.csv   Coverage per column per quarter
-eda/models_all_quarters.csv   Drive-days per model, used to identify SSDs
+eda/outputs/locked_columns.txt The 33 columns the pipeline narrows to
+eda/outputs/coverage_all_quarters.csv  Coverage pooled across all twelve quarters
+eda/outputs/coverage_by_quarter.csv    Coverage per column per quarter
+eda/outputs/models_all_quarters.csv    Drive-days per model, used to identify SSDs
 scripts/build_dataset.py      Narrows the daily CSVs to one Parquet per quarter
 scripts/build_modeling_table.py  Windows, labels and samples the modeling table
 data/raw/                     Quarterly zips, gitignored
@@ -59,7 +59,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**2. Download the twelve quarterly archives** into `data/raw/` (11 GB):
+**2. Download the twelve quarterly archives** into `data/raw/` (12.2 GB):
 
 ```
 mkdir -p data/raw && cd data/raw
@@ -73,22 +73,22 @@ cd ../..
 
 ```
 python eda/column_coverage.py data/raw/*.zip \
-  --out eda/coverage_all_quarters.csv \
-  --per-quarter-out eda/coverage_by_quarter.csv \
-  --columns-out eda/locked_columns.txt \
-  --models-out eda/models_all_quarters.csv
+  --out eda/outputs/coverage_all_quarters.csv \
+  --per-quarter-out eda/outputs/coverage_by_quarter.csv \
+  --columns-out eda/outputs/locked_columns.txt \
+  --models-out eda/outputs/models_all_quarters.csv
 ```
 
-**4. Build the narrowed dataset** (about four minutes, 5.7 GB out):
+**4. Build the narrowed dataset** (about four minutes, 6.1 GB out):
 
 ```
 python scripts/build_dataset.py data/raw/*.zip \
-  --columns eda/locked_columns.txt \
+  --columns eda/outputs/locked_columns.txt \
   --out-dir data/processed
 ```
 
 Both scripts print a reconciliation at the end. Step 4 should report
-311,740,279 rows kept and 0.864% dropped as SSD. If either figure differs, stop
+310,866,734 rows kept and 1.142% dropped as SSD. If either figure differs, stop
 and find out why before building anything on top of it.
 
 ## Building the modeling table
@@ -110,15 +110,16 @@ intermediate buckets. Pass `--skip-shuffle` on a re-run to reuse them, or delete
 
 | File | Period | Rows | Positives | Prevalence |
 | --- | --- | --- | --- | --- |
-| `modeling_train.parquet` | 2023-01-01 to 2024-10-21 | 170,205 | 8,105 | sampled to 20:1 |
-| `modeling_calib.parquet` | 2024-11-01 to 2024-12-20 | 297,879 | 328 | 1 in 908, true |
-| `modeling_test.parquet` | 2025-01-01 to 2025-12-15 | 3,531,820 | 3,722 | 1 in 948, true |
+| `modeling_train.parquet` | 2023-01-01 to 2024-10-21 | 169,827 | 8,087 | sampled to 20:1 |
+| `modeling_calib.parquet` | 2024-11-01 to 2024-12-20 | 297,009 | 328 | 1 in 905, true |
+| `modeling_test.parquet` | 2025-01-01 to 2025-12-15 | 3,521,973 | 3,722 | 1 in 946, true |
 
-**None of these are in the repository.** `modeling_test.parquet` is 134 MB and
+**None of these are in the repository.** `modeling_test.parquet` is 141 MB and
 GitHub rejects any file over 100 MB, so rather than split the set across two
 distribution methods all three files are sent to the team directly. Rebuild them
 from the public archives with the commands on this page if you need a fresh copy,
 then check the row counts against the table above to confirm the copy matches.
+The build is deterministic, so a rebuild reproduces these files exactly.
 
 Per the data snooping rule, `modeling_test.parquet` should not be opened until
 final evaluation.
@@ -166,7 +167,7 @@ What every column means, and the rows and values to clean before fitting, is in
   one split; the smallest window gap for those in both train and test is 4.
 - **Calibration and test are at true prevalence.** Only the training split is
   sampled. This is what the proposal's recalibration step needs.
-- **91.3% of source failures become positives**, 12,155 of 13,307. The remainder
+- **91.4% of source failures become positives**, 12,137 of 13,282. The remainder
   is structural: a drive failing in its first window has nothing to label, the
   final window has no successor, and boundary windows are discarded by the buffer.
 
@@ -195,11 +196,12 @@ df = pd.read_parquet("data/processed", columns=["date", "serial_number", "model"
 
 ## Notes on the data
 
-- **SSD boot drives are excluded**, 18 models and 0.864% of rows. Four Micron
-  models carry no "SSD" in their model string, and one has the part number
-  mid-name, so the filter matches substrings rather than prefixes. **Four more
-  SSD models got past this filter** and are still in the modeling table; the
-  list is in [documents/data_card.md](documents/data_card.md).
+- **SSD boot drives are excluded**, 22 models and 1.142% of rows. Eight of them
+  carry no "SSD" in their model string (four Micron part numbers, a Dell BOSS
+  boot device, and three WD and Seagate SSDs), and one has the part number
+  mid-name, so the filter matches substrings rather than prefixes. The last four
+  were found on September 27, 2026 and the pipeline was rebuilt without them;
+  no SSD model remains in any file.
 - **Normalized SMART values are stored as float32, raw values as float64.**
   Normalized readings are bounded 0 to 253. Raw readings are lifetime counters
   reaching the trillions, and float32 stops representing integers exactly above

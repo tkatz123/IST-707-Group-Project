@@ -390,13 +390,12 @@ def process_bucket(job):
 
         # Negatives are sampled in the training split only. Calibration and test
         # keep true prevalence, which is what the recalibration step needs. The
-        # seed is mixed with the bucket name so buckets do not all draw the same
-        # pattern while the run as a whole stays reproducible.
+        # fixed seed so the training sample is reproducable.
         if split == "train" and neg_ratio > 0 and positives:
             negatives = part[part["label"] == 0]
             keep = min(len(negatives), int(round(positives * neg_ratio)))
             negatives = negatives.sample(
-                n=keep, random_state=seed + hash(name) % 10_000
+                n=keep, random_state=42
             )
             part = pd.concat([part[part["label"] == 1], negatives])
 

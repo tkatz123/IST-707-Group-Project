@@ -2,7 +2,8 @@
 
 What is in the modeling table, what each column means, what to drop before
 fitting, and how big everything is. Every number below was measured from the
-files themselves on September 27, 2026. For how to model against the table
+files themselves on September 30, 2026, after the rebuild that fixed the
+negative-sampling seed. For how to model against the table
 (splitting, cross-validation, calibration, metrics), see
 [WORKPLAN.md](../WORKPLAN.md#how-to-model-against-this-table).
 
@@ -18,28 +19,29 @@ fails in the following 30 days.
 | Dataset | Files | Rows | Columns | Size on disk |
 | --- | --- | --- | --- | --- |
 | Raw quarterly archives (`data/raw/`) | 12 zips | 314,457,081 drive-days | 179 to 197, drifts by quarter | 12.2 GB |
-| Narrowed daily data (`data/processed/`) | 12 Parquet | 311,740,279 drive-days | 33 | 6.0 GB |
-| Modeling table (`data/modeling/`) | 3 Parquet | 3,999,904 windows | 94 | 162.9 MB |
+| Narrowed daily data (`data/processed/`) | 12 Parquet | 310,866,734 drive-days | 33 | 6.1 GB |
+| Modeling table (`data/modeling/`) | 3 Parquet | 3,988,809 windows | 94 | 163.4 MB |
 
 ### The three modeling files
 
 | File | Period | Windows (`window`) | Rows | Positives | Prevalence | Drive models | Drives | Size |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `modeling_train.parquet` | 2023-01-01 to 2024-10-21 | 0 to 21 | 170,205 | 8,105 | sampled to 20:1 | 68 | 132,211 | 9.1 MB |
-| `modeling_calib.parquet` | 2024-11-01 to 2024-12-20 | 22 to 23 | 297,879 | 328 | 1 in 908, true | 59 | 294,103 | 13.0 MB |
-| `modeling_test.parquet` | 2025-01-01 to 2025-12-15 | later | 3,531,820 | 3,722 | 1 in 948, true | not inspected | not inspected | 140.9 MB |
+| `modeling_train.parquet` | 2023-01-01 to 2024-10-21 | 0 to 21 | 169,827 | 8,087 | sampled to 20:1 | 63 | 131,815 | 9.0 MB |
+| `modeling_calib.parquet` | 2024-11-01 to 2024-12-20 | 22 to 23 | 297,009 | 328 | 1 in 905, true | 55 | 293,236 | 13.0 MB |
+| `modeling_test.parquet` | 2025-01-01 to 2025-12-15 | 24 to 35 | 3,521,973 | 3,722 | 1 in 946, true | not inspected | not inspected | 141.4 MB |
 
-Test was read from file metadata only. Its contents stay unopened until final
-evaluation, per the data snooping rule.
+Test's contents stay unopened until final evaluation, per the data snooping
+rule. Only `serial_number` and `window` were read, to verify the train/test gap
+in decision D2; the row and positive counts come from the build's own summary.
 
 ### The narrowed daily files, per quarter
 
 | Quarter | 2023 rows | 2024 rows | 2025 rows |
 | --- | --- | --- | --- |
-| Q1 | 21,238,186 | 24,961,388 | 27,575,844 |
-| Q2 | 21,614,549 | 25,793,904 | 28,583,284 |
-| Q3 | 23,373,836 | 26,592,244 | 29,615,823 |
-| Q4 | 24,561,951 | 27,116,728 | 30,712,542 |
+| Q1 | 21,187,784 | 24,888,592 | 27,496,851 |
+| Q2 | 21,558,164 | 25,718,932 | 28,502,694 |
+| Q3 | 23,309,726 | 26,514,409 | 29,533,057 |
+| Q4 | 24,490,358 | 27,037,083 | 30,629,084 |
 
 ## Columns
 
@@ -60,8 +62,8 @@ features.
 
 | Column | Type | Meaning |
 | --- | --- | --- |
-| `model` | string | Drive model name. 68 distinct values in train, 59 in calib. Needs encoding. Models that appear in test but never in train are possible, so an encoder must tolerate unseen categories. |
-| `capacity_bytes` | int64 | Drive capacity in bytes, 250 GB to 22 TB in train and calib. **`-1` means unknown**, Backblaze's missing-value marker. See the rows section below. |
+| `model` | string | Drive model name. 63 distinct values in train, 55 in calib. Needs encoding. Models that appear in test but never in train are possible, so an encoder must tolerate unseen categories. |
+| `capacity_bytes` | int64 | Drive capacity in bytes, 500 GB to 22 TB in train and calib. **`-1` means unknown**, Backblaze's missing-value marker. See the rows section below. |
 | `days_observed` | int64 | Days the drive reported inside the window, 2 to 30. Windows with fewer than 2 were dropped, since first and last would be the same reading. |
 | `days_span` | int16 | Days between the first and last reading in the window, 1 to 29. Divide any `_delta` by this for a rate of change. |
 | `drive_days_to_date` | int64 | Running count of days the drive has been observed, through the end of this window. **Counted from 2023-01-01, not from installation**, so a drive installed in 2018 starts near 30. It is time in this dataset, not age. For true age use `smart_9_raw` (power-on hours). |
@@ -81,7 +83,9 @@ ways over the window: 14 x 2 x 3 = 84.
   float32 holds exactly.
 - `normalized`: the manufacturer's health score for that attribute, 0 to 253.
   Usually starts at 100 or 200 and **falls** as the drive degrades. Stored as
-  float32.
+  float32. **This is not feature scaling.** It is a column Backblaze ships, not
+  something the pipeline computed, so logistic regression still needs its own
+  scaling, fit on train only.
 
 **Summary:**
 
@@ -107,14 +111,16 @@ ways over the window: 14 x 2 x 3 = 84.
 | 198 | Offline Uncorrectable | Sectors that failed the drive's offline scan. **Headline predictor.** |
 | 199 | UltraDMA CRC Error Count | Data transfer errors on the cable or interface, usually a cabling problem rather than the disk itself. |
 
-**Missing values.** Genuinely missing on some rows, and the six columns for an
-attribute are always missing together. Everything is at or under 0.4% except
-SMART 197:
+**Missing values.** Genuinely missing on a few rows, and the six columns for an
+attribute are always missing together. Only two attributes have any:
 
-| | SMART 197 | Every other attribute |
-| --- | --- | --- |
-| train | 2.5% | 0.2% to 0.4% |
-| calib | 2.3% | 0.1% to 0.3% |
+| | SMART 197 | SMART 193 | Every other attribute |
+| --- | --- | --- | --- |
+| train | 2.2% | 0.13% | none |
+| calib | 2.0% | 0.03% | none |
+
+Before the SSD fix every attribute showed 0.2% to 0.4% missing, which matches
+the SSD rows' share of the table.
 
 XGBoost handles these natively. Logistic regression needs them imputed.
 
@@ -139,11 +145,13 @@ The five bookkeeping columns: `serial_number`, `window`, `window_first_date`,
 `window_last_date`, `label`. Keep `label` aside as the target. That leaves 89
 feature columns.
 
-### Rows: SSD boot drives that got past the filter
+### Rows
 
-**The pipeline is meant to exclude every SSD, and four SSD models slipped
-through**, because none of them has "SSD" or a Micron part number in its model
-string:
+**Nothing to drop.** Four SSD models had got past the original SSD filter,
+because none of them has "SSD" or a Micron part number in its model string.
+**Fixed September 27, 2026**: the filter now catches them, the pipeline was
+rebuilt, and no SSD model remains in any file (verified September 30). For the
+record, what they were:
 
 | Model | What it is | Train rows | Train positives | Calib rows |
 | --- | --- | --- | --- | --- |
@@ -153,15 +161,42 @@ string:
 | `WD Blue SA510 2.5 250GB` | WD Blue SA510 SSD | 70 | 14 | 127 |
 | **Total** | | **500** | **18** | **870** (0 positives) |
 
-Drop these by model name. They are a small share of the table, but SSDs report
-different attributes with different physical meanings, which is why the proposal
-excludes them. **This also means the SSD figure in the README and WORKLOG is
-low:** it is 22 models and 1.142% of raw rows, not 18 models and 0.864%.
+SSDs report different attributes with different physical meanings, which is why
+the proposal excludes them. **The true SSD share is 22 models and 1.142% of raw
+rows**, not the 18 models and 0.864% first recorded in the WORKLOG.
 
 ### Values
 
 `capacity_bytes == -1` is Backblaze's "unknown", not a real capacity. It appears
-on 32 training rows, all `TOSHIBA MG08ACA16TA`, and none in calib. Replace it
-with a missing value rather than dropping the rows: **5 of those 32 are
-positives**, which is 16% against a 4.8% training base rate, so a drive failing
-to report its own capacity may itself be a symptom.
+on 23 training rows across nine drive models, and none in calib. Replace it with
+a missing value rather than dropping the rows: **5 of those 23 are positives**,
+which is 22% against a 4.8% training base rate, so a drive failing to report its
+own capacity may itself be a symptom.
+
+### Worth knowing before EDA
+
+Measured on the training file, September 30, 2026.
+
+- **Most SMART raw counters are 0 on healthy drives, and that is the signal.**
+  Share of rows with a nonzero value:
+
+  | Column | Healthy (label 0) | Failing (label 1) |
+  | --- | --- | --- |
+  | `smart_5_raw_last` | 3.4% | 47.9% |
+  | `smart_197_raw_last` | 1.2% | 40.7% |
+  | `smart_198_raw_last` | 0.8% | 30.9% |
+  | `smart_5_raw_delta` | 0.6% | 33.5% |
+
+- **Near-constant columns, candidates to drop:** all six SMART 10 columns (the
+  raw value is 0 on effectively every row), `smart_199_normalized_delta` (a single
+  value), and the SMART 4 and 12 normalized scores, which barely move.
+- **SMART 1 and 7 raw are 0 on over 99% of Toshiba, WD and HGST rows** and
+  large encoded values on Seagate, up to about 2.8e14. The zeros are the manufacturer, not
+  missing data.
+- **Counters that should only rise sometimes fall, on about 0.2% of rows:** 23
+  rows where power-on hours (SMART 9) drop, 21 of them `ST6000DX000`; 274 where
+  SMART 198 drops; 69 where SMART 5 drops. Likely firmware resets or reused
+  serial numbers. Too few to matter much, worth one line in the EDA.
+- **SMART 199 (cable CRC errors) does not separate failures**: nonzero on 1.4% of
+  healthy rows and 1.6% of failing ones, which fits it measuring the cable rather
+  than the disk.

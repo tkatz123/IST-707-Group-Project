@@ -4,7 +4,7 @@ Where the project is going. Completed work is recorded in
 [WORKLOG.md](WORKLOG.md), and the approved scope is in
 [documents/proposal.md](documents/proposal.md).
 
-**Last updated:** September 27, 2026
+**Last updated:** September 30, 2026
 
 ## Status
 
@@ -19,7 +19,10 @@ Where the project is going. Completed work is recorded in
 | Final report and presentation | Week of Dec 1, 2026 | Not started |
 
 Only two class meetings fall between now and the midterm presentation, because
-October 13 is fall break. The midterm rubric is expected September 29.
+October 13 is fall break. The midterm rubric was posted September 29: 12 to 15
+minutes including Q&A, at least five statistical analyses in the EDA, a
+no-training baseline, one trained model, and future work plus problems and
+challenges.
 
 ## Who owns what
 
@@ -50,30 +53,31 @@ baselines, which can run in parallel.
 | 7 | Hold out an unsampled, true-prevalence slice for recalibration | Tyler | Done, `modeling_calib.parquet` |
 | 8 | EDA on the modeling table (train and calib only, not test) | Hashim | Not started |
 
-**Open: four SSD models got past the SSD filter**, 500 training rows and 870
-calibration rows. Until the pipeline is fixed and rebuilt, drop them by model name
-at load time. The list is in [documents/data_card.md](documents/data_card.md).
+**Closed September 27, 2026: four SSD models had got past the SSD filter**, 500
+training rows and 870 calibration rows. The filter was fixed and the pipeline
+rebuilt the same day. No SSD model remains in any file, verified September 30.
+Nothing needs dropping at load time.
 
 ### The modeling table
 
 | split | period | rows | positives | prevalence |
 | --- | --- | --- | --- | --- |
-| train | 2023-01-01 to 2024-10-21 | 170,205 | 8,105 | sampled to 20:1 |
-| calib | 2024-11-01 to 2024-12-20 | 297,879 | 328 | 1 in 908, true |
-| test | 2025-01-01 to 2025-12-15 | 3,531,820 | 3,722 | 1 in 948, true |
+| train | 2023-01-01 to 2024-10-21 | 169,827 | 8,087 | sampled to 20:1 |
+| calib | 2024-11-01 to 2024-12-20 | 297,009 | 328 | 1 in 905, true |
+| test | 2025-01-01 to 2025-12-15 | 3,521,973 | 3,722 | 1 in 946, true |
 
 94 columns: 28 sensors as first, last and delta within the window (84), plus
 `capacity_bytes`, `model`, `days_observed`, `days_span`, `drive_days_to_date`,
 `serial_number`, `window`, `window_first_date`, `window_last_date` and `label`.
 
-**Recovery is 91.3%:** 12,155 of the 13,307 failure events in the source become
-positives. The missing 8.7% is structural and not a defect: a drive that fails in
+**Recovery is 91.4%:** 12,137 of the 13,282 failure events in the source become
+positives. The missing 8.6% is structural and not a defect: a drive that fails in
 its first observed window has no preceding window to label, the final window of
 the data has no successor to read the outcome from, and windows whose label
 period straddles a split boundary are discarded by the buffer described in D2.
 
-**Calibration and test prevalence agree to within 5% of each other** (1 in 908
-against 1 in 948) across two independently held-out periods, which is the
+**Calibration and test prevalence agree to within 5% of each other** (1 in 905
+against 1 in 946) across two independently held-out periods, which is the
 strongest available evidence that the labeling is not drifting.
 
 ## How to model against this table
@@ -120,7 +124,7 @@ function chapter 2 reaches for on every model it fits.
 - **Logistic regression needs both.** The sensors have genuine missing values, and
   the raw counters span many orders of magnitude (power-on hours in the tens of
   thousands next to reallocated sector counts in the single digits).
-- **`model` is a string with 68 categories in train** (94 across the whole fleet,
+- **`model` is a string with 63 categories in train** (72 hard drive models across the whole fleet,
   so test may hold models train never saw). `ColumnTransformer` with one-hot is
   the straightforward choice. **Avoid target encoding**, which fits on the label
   and leaks unless the folds are handled carefully.
@@ -128,7 +132,7 @@ function chapter 2 reaches for on every model it fits.
 ### Recalibration, which the class has not covered
 
 **The training split was sampled to 20:1, so the model learns a base rate of
-about 1 in 21 when reality is about 1 in 948.** Its predicted probabilities will
+about 1 in 21 when reality is about 1 in 946.** Its predicted probabilities will
 be far too high. They are still correctly *ranked*, which is why the proposal
 treats ranking metrics as primary, but the probabilities themselves mean nothing
 until they are corrected.
@@ -157,7 +161,7 @@ Already settled in the proposal, and they are not the class defaults:
   to fail and what share of all failures were caught, against both baselines.
 - **PR-AUC, not ROC-AUC.** ROC-AUC flatters models on imbalanced data.
 - **A calibration curve.**
-- **Never accuracy.** At 1 positive in 948 windows, always predicting "no
+- **Never accuracy.** At 1 positive in 946 windows, always predicting "no
   failure" scores 99.89%.
 
 ## Decisions made
@@ -176,8 +180,9 @@ and a drive in service across the boundary cannot satisfy both. Rather than drop
 those drives, which would bias the later splits toward newly installed and
 therefore young drives, any window whose label period falls on the other side of
 a boundary is discarded. A drive may appear in more than one split, but never
-with overlapping or adjacent evidence: the smallest window gap for the 113,790
-drives present in both train and test is 4 windows, verified. The strict variant
+with overlapping or adjacent evidence: the smallest window gap for the 113,178
+drives present in both train and test is 4 windows, verified again on
+September 30, 2026. The strict variant
 is available behind `--drop-boundary-drives` if the team prefers it.
 
 **D3. SMART 187 and 188 are excluded.** Decided September 24, 2026. Both sit at
@@ -208,16 +213,16 @@ Full statements, mitigations and fallbacks are in the proposal. Current state:
 
    **In the modeling table that becomes a 30% gap in base rate between the period
    we fit on and the period we are judged on:** training sits at roughly 1
-   positive in 716 windows, test at 1 in 948. A model that learns the 2023 and
+   positive in 722 windows before sampling, test at 1 in 946. A model that learns the 2023 and
    2024 base rate will systematically over-predict on 2025.
 
    **This is why the calibration slice sits at the end of the training span rather
    than being drawn from all of it.** Calibration (November and December 2024) is
-   at 1 in 908 and test is at 1 in 948, four percent apart, because they are
+   at 1 in 905 and test is at 1 in 946, about four and a half percent apart, because they are
    adjacent in time. Calibrating against the full training span would have
    imported the 2023 base rate and biased every predicted probability upward.
 
-   **Still to check:** the drive model mix. The fleet holds 94 distinct models
+   **Still to check:** the drive model mix. The fleet holds 72 distinct hard drive models
    across the three years and turns over constantly, so train/test model overlap
    needs checking before any result is final, and performance should be broken out
    by model where sample size allows.
@@ -232,7 +237,7 @@ Full statements, mitigations and fallbacks are in the proposal. Current state:
 
 ## How the data is shared
 
-The 11 GB of raw archives and the 5.7 GB narrowed dataset stay local to each
+The 12.2 GB of raw archives and the 6.1 GB narrowed dataset stay local to each
 machine and are gitignored. What is committed is the scripts that rebuild them,
 so anyone can reproduce them from the public archives. Reproduction steps are in
 [README.md](README.md).
@@ -241,15 +246,15 @@ so anyone can reproduce them from the public archives. Reproduction steps are in
 public archives, and reproduction steps are in [README.md](README.md).
 
 **The three modeling files are distributed to the team directly, by email**,
-because `modeling_test.parquet` is 134 MB and GitHub rejects any file over 100 MB.
+because `modeling_test.parquet` is 141 MB and GitHub rejects any file over 100 MB.
 Rather than split the set across two distribution methods, all three travel the
 same way.
 
 | File | Size |
 | --- | --- |
-| `modeling_train.parquet` | 9 MB |
-| `modeling_calib.parquet` | 12 MB |
-| `modeling_test.parquet` | 134 MB |
+| `modeling_train.parquet` | 9.0 MB |
+| `modeling_calib.parquet` | 13.0 MB |
+| `modeling_test.parquet` | 141.4 MB |
 
 **If any of the three is rebuilt, it has to be re-sent.** That is the cost of
 distributing data outside version control, and it is why the scripts and the
@@ -257,3 +262,9 @@ locked column list are committed: the files can always be regenerated identicall
 from them. Anyone unsure whether their copy is current should rerun
 `scripts/build_modeling_table.py` and check the row counts against the table in
 the modeling table section above.
+
+**Rebuilt September 30, 2026. Delete any copy from September 27.** The training
+split's negative sampling used a seed that changed on every run, so rebuilds
+drew different negatives. It now uses a fixed seed, and a second build was
+compared against the first and matched exactly. Calib and test were never
+sampled and are unchanged apart from the SSD fix.
