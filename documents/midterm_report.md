@@ -48,7 +48,19 @@
 
 ## 5. Exploratory Data Analysis
 
+The exploratory data analysis was carried out in the EDA_HDD_Failure.ipynb file, where within class comparisons were carried out. Training data gas 8087 failures and the 20:1 down sampling removed healthy windows at random making the SMART attributes in each class unbiased. Most instances of SMART attributes are zero for most drives to counter this U tests, x^2 test of independence,  spearman correlation and Poisson confidence intervals were used to analyse the data.
+
 ### 5.1 Analysis 1: Class Distribution and Failure Prevalence
+
+We examined the failure rate in each split with the 95% Wilson confidence interval on each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:20 ratio gives out a lot of false negatives, and if a model was to predict a drive not to fail for all test data that it would get an accuracy of 99%, which is misleading. 
+
+As a result we came to the conclusion that there is a severe imbalance. The train has 1 failure : 20 healthy (4.76%). Calib and test are about 1 : 900 (0.11%). A classifier trained on this data will over predict failure. To counter this we need to take into account PR-AUC or set a false alarm rate.
+
+| Split | Period | Drive-windows | Failures | Failure rate (95% Wilson CI) | Healthy : failed |
+|---|---|---|---|---|---|
+| Train | Jan 2023 – Oct 2024 | 169,827 | 8,087 | 4.762% (4.662–4.864%) | 20 : 1 |
+| Calibration | Nov – Dec 2024 | 297,009 | 328 | 0.110% (0.099–0.123%) | 905 : 1 |
+| Test | Jan – Dec 2025 | 3,521,973 | 3,722 | 0.106% (0.102–0.109%) | 945 : 1 |
 
 ### 5.2 Analysis 2: SMART 5 — Reallocated Sectors
 
