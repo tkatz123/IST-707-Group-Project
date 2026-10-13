@@ -79,7 +79,7 @@ We also determined that age follows the classic reliability curve, as AFR is 0.9
 
 In this analysis we check how different the failing values of the 14 SMART attributes are to the healthy ones. We check the % on non-zero values by class and the odds ratio of failure with non-zero values. This will help tell us which attributes carry a signal and whether it is the presence or the size of the value that matters.
 
-The following table shows the attributes and what percantage of the failed drives had a non- xero value for tha attribut.
+The following table shows the attributes, what percantage of the failed drives had a non-zero value for that attribute and the 95% confidence interval.
 
 | Attribute | % non-zero, healthy | % non-zero, failed | Odds ratio (95% CI) |
 |---|---:|---:|---:|
@@ -104,9 +104,20 @@ S5, S197, S198 are seen to be the three most dominant precursors. A non-zero val
 
 ### 5.4 Analysis 4: Raw vs Normalized SMART Values (What Normalization Does)
 
-### 5.5 Analysis 5: Correlation, Redundancy, Degradation and Information Ranking
+Every SMART attribute has a RAW and a NORMALIZED value. The RAW value is the physical value of the drive while the normalized value is a 1–253 score that the vendor's firmware derives from the raw value using a formula the vendor does not publish. The purpose of normalization is to put every attribute on a common "health" scale, where 100 (or 200) means new and a falling value means degradation. In this section we test whether that normalization helps or hurts prediction. This will help us determine which of the SMART columns to keep and how do we scale them.
 
-### 5.6 Additional EDA Findings
+The raw values have upto 72,000 different values, while the normalized values are fewer than 130.This results in lots of detail getting thrown away. For S5, the normalized value stays at 100 until there are thousands of reallocated sectors. The early warning we saw previously is invisible on the normalized scale. For S9, Toshiba's normalized value hits the floor of 1 at about 40,000 h (4.6 years), so every older Toshiba drive looks the same.
+![Image 5.4A](images/5.4A)
+
+Normalization has compressed large numbers of raw values into a few levels:
+- S1: 72,495 raw values → 80 normalized levels
+- S7: 72,332 → 48
+- S9: 53,344 → 100
+
+In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep the vendor explicit feature and from the normalized values that are duplicate and can leak the vendor identity to the model.
+
+
+### 5.5 Analysis 5: Correlation, Redundancy, Degradation and Information Ranking
 
 ## 6. Baselines
 
