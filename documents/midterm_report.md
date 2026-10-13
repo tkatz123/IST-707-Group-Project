@@ -117,7 +117,36 @@ Normalization has compressed large numbers of raw values into a few levels:
 In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep the vendor explicit feature and from the normalized values that are duplicate and can leak the vendor identity to the model.
 
 
-### 5.5 Analysis 5: Correlation, Redundancy, Degradation and Information Ranking
+### 5.5 Analysis 5: Correlation, Redundancy and Degradation
+
+This analysis has 2 parts; (1) a spearman rank correlation, (2) whether the change during a window adds signal beyond the window.
+
+Correlated features waste model capacity and make linear coefficients unstable. The table show the mode redundant attributes:
+
+| Pair | Spearman ρ | Meaning |
+|---|---|---|
+| S4 Start/Stop ↔ S12 Power Cycles | **+0.997** | Effectively the same variable; keep one |
+| S1 Read Error ↔ S7 Seek Error | +0.901 | Both Seagate-encoded composites (vendor artefact) |
+| S9 Power-On Hours ↔ Capacity | **−0.845** | Bigger drives are newer, so age and capacity are confounded |
+| S197 Pending ↔ S198 Uncorrectable | +0.803 | Related but not identical; keep both |
+| S3 Spin-Up ↔ S7 / S1 / S193 | −0.74 to −0.76 | Vendor encoding again |
+
+
+We can see clear correlation between s4 and s12 so we can drop one. S1 and S7 also have a high correlation and their correlation with other attributes is similar thus one of them could also be dropped. S197 and S198 are strongly related but their correlation with other attributes is not identical, so both stay.
+
+The following table shows the attribute and the degradation it has during the final 30 days.
+
+| Attribute | AUC of level | AUC of change | % failed with an increase | % healthy with an increase | Lift |
+|---|---|---|---|---|---|
+| S5 Reallocated | 0.725 | 0.656 | 32.6% | 0.6% | **54×** |
+| S197 Pending | 0.702 | 0.594 | 25.4% | 0.3% | **82×** |
+| S198 Uncorrectable | 0.651 | 0.574 | 17.1% | 0.2% | **97×** |
+| S193 Load/Unload | 0.602 | 0.567 | 80.0% | 69.8% | 1.1× |
+| S9 Power-On Hours | 0.632 | 0.511 | 99.9% | 99.9% | 1.0× |
+
+We can see the growing amount of failures. A large number of drives gain error counters before failing. On its own, the change is slightly weaker than the level (S5: 0.656 vs 0.725). Many failing drives already had errors at the start of the window. S9 rises in almost every window for both classes. 
+
+
 
 ## 6. Baselines
 
