@@ -107,7 +107,7 @@ S5, S197, S198 are seen to be the three most dominant precursors. A non-zero val
 Every SMART attribute has a RAW and a NORMALIZED value. The RAW value is the physical value of the drive while the normalized value is a 1–253 score that the vendor's firmware derives from the raw value using a formula the vendor does not publish. The purpose of normalization is to put every attribute on a common "health" scale, where 100 (or 200) means new and a falling value means degradation. In this section we test whether that normalization helps or hurts prediction. This will help us determine which of the SMART columns to keep and how do we scale them.
 
 The raw values have upto 72,000 different values, while the normalized values are fewer than 130.This results in lots of detail getting thrown away. For S5, the normalized value stays at 100 until there are thousands of reallocated sectors. The early warning we saw previously is invisible on the normalized scale. For S9, Toshiba's normalized value hits the floor of 1 at about 40,000 h (4.6 years), so every older Toshiba drive looks the same.
-![Image 5.4A](images/5.4A)
+![Image 5.4A](images/5.4A.png)
 
 Normalization has compressed large numbers of raw values into a few levels:
 - S1: 72,495 raw values → 80 normalized levels
