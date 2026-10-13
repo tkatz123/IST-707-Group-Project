@@ -82,18 +82,18 @@ In this analysis we check how different the failing values of the 14 SMART attri
 The following table shows the attributes and what percantage of the failed drives had a non- xero value for tha attribut.
 
 | Attribute | % non-zero, healthy | % non-zero, failed | Odds ratio (95% CI) |
-|---|---|---|---|---|---|
+|---|---:|---:|---:|
 | S5 Reallocated Sectors | 3.4% | **47.9%** | 25.9 (24.6–27.3) |
-| S197 Current Pending Sectors | 1.2% | **41.5%** | **59.0** (55.4–62.9) |
+| S197 Current Pending Sectors | 1.2% | **41.5%** | **59.0 (55.4–62.9)** |
 | S198 Offline Uncorrectable | 0.8% | **30.9%** | 55.9 (52.0–60.2) |
-| S9 Power-On Hours | always > 0 | always > 0 | n/a |
-| S4 Start/Stop Count | always > 0 | always > 0 | n/a |
-| S12 Power Cycle Count | always > 0 | always > 0 | n/a |
-| S193 Load/Unload Cycles | always > 0 | always > 0 | n/a |
+| S9 Power-On Hours | Always > 0 | Always > 0 | N/A |
+| S4 Start/Stop Count | Always > 0 | Always > 0 | N/A |
+| S12 Power Cycle Count | Always > 0 | Always > 0 | N/A |
+| S193 Load/Unload Cycles | Always > 0 | Always > 0 | N/A |
 | S7 Seek Error Rate | 42.0% | 54.8% | 1.67 |
 | S1 Read Error Rate | 42.1% | 57.3% | 1.84 |
 | S3 Spin-Up Time | 50.4% | 35.3% | 0.54 |
-| S194 Temperature | always > 0 | always > 0 | n/a |
+| S194 Temperature | Always > 0 | Always > 0 | N/A |
 | S192 Power-Off Retract | 87.7% | 89.9% | 1.24 |
 | S199 UltraDMA CRC Errors | 1.4% | 1.6% | 1.09 (0.9–1.3) |
 | S10 Spin Retry Count | 0.0% | 0.0% | — |
