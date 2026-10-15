@@ -186,14 +186,35 @@ We can see the growing amount of failures. A large number of drives gain error c
 
 ### 9.1 Class Imbalance
 
+In the original dataset 1 in 945 drive windows ends in failure. This led to four major problems:
+1. Misleading Metrics: Accuracy can not be used to test how good the model is.If the model guessed healthy for all the drives then it would get an accuracy close to 99% We therefore use precision recall curves to test how good the model is. 
+
+2. Train/Test Prior Shift: We down sampled the train set to 1:20 ratio which led to a 4.76% positive record, which is 45 times the test prevalence. A model trained on this data produces an inflated failure rate..
+
+3. Cost of False Positive: The EDA shows how hard precision will be. Even the strongest simple rule we discovered "any of S5, S197, S198 is non-zero", flags 5.5% of the drive windows in which only 1.25% are true positives. Thus the threshold we choose must be explicit and not a default value,
+
+4. Limited Data for some groups. Some models have insufficient failures in the data set for the model to truly understand them. The failure rate estimates are near 0% if normal approximation is used, so we use poisson confidence intervals to estimate their failure rate.
+
+
 ### 9.2 Missing and Manufacturer-Dependent SMART Attributes
 
-### 9.3 Data Volume and Processing
+S197 is missing for 2.2% of training rows. Every missing value comes from two Toshiba variants (MG08ACA16TEY, MG07ACA14TEY) that do not report the attribute. As this missingness is not random but tied to the model, mean or median imputation will result in false healthy readings, so we keep these values as 'NaN'.
 
-### 9.4 Temporal Distribution Shift and Unseen Drive Models
+Another issue we observed is the Vendor specific encoding on the SMART attributes. SMART is only loosely standardised. Seagate stores S1 (read error rate) and S7 (seek error rate) as 48-bit composite values in the tens of millions, while other vendors report. The normalized temperature is the actual °C for Seagate, a falling curve for HGST and a constant 100 for Toshiba. Thus some attributes look simple and would reveal the manufacturers and cause leakage.
 
-### 9.5 Challenges Encountered and Workarounds
+### 9.3 Temporal Distribution Shift and Unseen Drive Models
 
+The training set covers 2023 - Oct 2024 and the test set covers 2025. Evaluation therefore shows real world development. The health of median healthy drivers went from 2.9 to 3.4 years, the capacity shifted drastically as the news models had a 20-24 Tb storage. The newer models never appeared in the test set, and the last test windows show an artificially low failure rate. Taking all this into account we decided to perform vendor and capacity features over raw model identity and consider age features relative to each model's population.
+
+### 9.4 Challenges Encountered and Workarounds
+
+| Challenge | Why it was a problem | Workaround |
+|---|---|---|
+| Down-sampled training data | Failure rates computed on train are inflated about 45× | Real-world rates (AFR, risk by bucket) computed on the natural-prevalence test split. Where train was needed, negatives re-weighted ×20 |
+| Rare events near 0% | Normal-approximation confidence intervals produced impossible negative bounds for small windows (e.g. 1 failure in 258 rows gives −0.37% to 1.15%) | Wilson score intervals for proportions; exact Poisson intervals for annualised rates |
+| Zero-inflated, heavy-tailed counters | Means, Pearson correlation and t-tests dominated by outliers | Non-parametric tests (Mann–Whitney, KS, Spearman, Kruskal–Wallis, Wilcoxon), Cliff's δ effect sizes, log-scale plots |
+| Odds ratios for counters that are always non-zero | "Odds of failure if non-zero" is undefined when nearly every drive is non-zero (e.g. S9, S194) | Reported "n/a" for those attributes and relied on Cliff's δ and KS instead |
+| Vendor-encoded attributes | Apparent signal in S1, S3, S7 and normalized S194/S199 reflects manufacturer, not health | Within-vendor AUC computed alongside pooled AUC; vendor-confounded attributes flagged |
 ## 10. Conclusion
 
 ## References
