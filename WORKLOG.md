@@ -3,6 +3,40 @@
 What actually got done, newest week first. One entry per week, per person.
 Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
+## Week of October 13 to 19, 2026
+
+### Tyler Katz
+
+- **Wrote sections 1 to 4 of the midterm report**: Problem, Stakeholders and
+  Significance, Related Work, and Dataset. Cut the section skeleton for these
+  from 19 subsections down to the rubric's own headings, with Dataset split into
+  Source, Size and Features, and Why We Trust It.
+- **Rebuilt Related Work in response to the proposal feedback** that the
+  literature review was too narrow. It now covers current threshold practice,
+  the two 2007 field studies, and machine learning work from 2005 to 2021
+  (Murray et al., Li et al., Botezatu et al., Aussel et al., Lu et al., Amram et
+  al.), plus Backblaze's own 2016 SMART analysis, then states where this project
+  fits and what it inherits as a limit. Nine sources, cited with GitHub footnotes.
+- **Corrected the proposal's dataset figures in the report**: 22 SSD models and
+  1.142% of rows (not 13 and 0.78%), and SMART 187 and 188 at 35% coverage, so
+  excluded.
+- **Cross-checked our data against Backblaze's published totals.** Our cleaned
+  2025 data holds 116,161,686 drive-days against Backblaze's published
+  115,638,676, within 0.5%. Counted from the per-quarter build output, without
+  opening the test file.
+- Added where the data can be found (Backblaze's Drive Stats page and the
+  README's rebuild steps), since the rubric does not allow submitting data.
+- **Moved `midterm_report.md` to the repository root**, where the rubric
+  requires it, and updated its image path to `documents/images/`.
+
+### Hashim Khan
+
+- _To fill in._
+
+### Mrgaj Iyer
+
+- _To fill in._
+
 ## Week of September 29 to October 5, 2026
 
 ### Tyler Katz
