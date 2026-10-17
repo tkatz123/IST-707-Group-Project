@@ -60,7 +60,7 @@ The exploratory data analysis was carried out in the EDA_HDD_Failure.ipynb file,
 
 ### 5.1 Class Imbalance and the Prior Shift Between Train and the Natural-Rate Fleet
 
-We examined the failure rate in each split with the 95% Wilson confidence interval overall and for each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:36 ratio gives out a lot of false positives, and if a model would get an accuracy of about 99.9% on the natural-rate data
+We examined the failure rate in each split with the 95% Wilson confidence interval overall and for each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:20 ratio over-predicts failure and gives out a lot of false positives. Also, a model that predicted every drive to be healthy would get an accuracy of about 99.9% on the natural-rate data, which is misleading.
 
 As a result we came to the conclusion that there is a severe imbalance. The train has 1 failure : 20 healthy (4.76%). Calib is about 1 : 905 (0.110%), a 43× gap. After undoing the down-sampling (each kept healthy window stands for about 36 real ones), the train-period rate is 0.139%, close to calib’s 0.110%, so most of the gap comes from the sampling. A classifier trained on this data will over predict failure. To counter this we need to take into account PR-AUC or set a false alarm rate and recalibrate the predicted probabilities on the calibration split.
 
@@ -68,26 +68,26 @@ As a result we came to the conclusion that there is a severe imbalance. The trai
 |---|---|---|---|---|---|
 | Train | Jan 2023 – Oct 2024 | 169,827 | 8,087 | 4.762% (4.662–4.864%) | 20 : 1 |
 | Calibration | Nov – Dec 2024 | 297,009 | 328 | 0.110% (0.099–0.123%) | 905 : 1 |
-| Test | Jan – Dec 2025 | 3,521,973 | 3,722 | held out | held out |
+| Test | Jan – Dec 2025 | 3,521,973 | held out | held out | held out |
 
 ### 5.2 Analysis 2: Who Fails? Manufacturer, Model and Age
 
-In this analysis we calculate annual failure rate (afr) for all the manufacturers, and for the 15 most common drive models. We use the calibration split, which keeps the natural failure rate (1 in 905); the test split is held out until final evaluation. We also check if failure is independent of the model and plot afr against drive age. This will help us determine if the failure is dependent on the model, because if it is then there should be equal representation of all models in the train test split. We use the test split for this analysis as the results on the train split will be inflated.
+In this analysis we calculate annual failure rate (afr) for all the manufacturers, and for the 15 most common drive models. We use the calibration split, which keeps the natural failure rate (1 in 905); the test split is held out until final evaluation. We also check if failure is independent of the model and plot afr against drive age. This will help us determine if the failure is dependent on the model, because if it is then there should be equal representation of all models in the train test split.
 
-The results show that HGST drives fail at 2.61% per year, about 3× WDC’s 0.85%, and HGST’s confidence interval does not overlap with any other vendor’s. Across the 15 models with at least 5,000 windows (χ² = 113.9, dof = 14, p ≈ 10⁻¹⁷). However, Cramér’s V is only 0.020, a small effect.
+The results show that HGST drives fail at 2.61% per year, about 3× WDC’s 0.85%, and HGST’s confidence interval does not overlap with any other vendor’s. Across the 15 models with at least 5,000 windows, a χ² test of independence rejects "failure does not depend on the model" (χ² = 113.9, dof = 14, p ≈ 10⁻¹⁷). However, Cramér’s V is only 0.020, a small effect, so the tiny p-value mostly reflects the large sample.
 
-We also determined that age does not follows the classic reliability curve, as AFR is 0.92%  in the first and second year and rises to 3.56% at 5-6 years and then falls to1.48% at 7–8 years and 0.88% at 8–10. Another observation is that capacity also has a hand in drive failure. The older 2 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
+We also determined that age does not follow the classic reliability curve, as AFR is 0.92% in the first and second year, rises to 3.56% at 5–6 years, and then falls to 1.48% at 7–8 years and 0.88% at 8–10. Another observation is that capacity also has a hand in drive failure. The older 12 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
 
   | Capacity | 8 TB | 12 TB | 14 TB | 16 TB | 22 TB |
-  |---|---|---|---|---|---|---|---|
-  | AFR | 1.46% | 2.21% | 1.67% | 0.83% | **1.27%** |
+  |---|---|---|---|---|---|
+  | AFR | 1.46% | 2.21% | 1.67% | **0.83%** | 1.27% |
 
 
 ### 5.3 Analysis 3: SMART Signatures of Failing vs Healthy Drives
 
 In this analysis we check how different the failing values of the 14 SMART attributes are to the healthy ones. We check the % of non-zero values by class and the odds ratio of failure with non-zero values. This will help tell us which attributes carry a signal and whether it is the presence or the size of the value that matters.
 
-The following table shows the attributes, what percantage of the failed drives had a non-zero value for that attribute and the 95% confidence interval.
+The following table shows the attributes, what percentage of the failed drives had a non-zero value for that attribute and the 95% confidence interval.
 
 | Attribute | % non-zero, healthy | % non-zero, failed | Odds ratio (95% CI) |
 |---|---:|---:|---:|
@@ -107,14 +107,14 @@ The following table shows the attributes, what percantage of the failed drives h
 | S10 Spin Retry Count | 0.0% | 0.0% | — |
 
 
-S5, S197, S198 are seen to be the three most dominant precursors. A non-zero value for these three attributes significantly raises the odds of failure. However they are not sufficient on their own because about half of the failing drives have s5=0 Drives that fail suddenly, for example through electronics, motor or head failure, give no warning in these counters, which caps the recall that SMART alone can achieve
+S5, S197, S198 are seen to be the three most dominant precursors. A non-zero value for these three attributes significantly raises the odds of failure. However they are not sufficient on their own because about half of the failing drives have S5 = 0. Drives that fail suddenly, for example through electronics, motor or head failure, give no warning in these counters, which caps the recall that SMART alone can achieve.
 
 
 ### 5.4 Analysis 4: Raw vs Normalized SMART Values (What Normalization Does)
 
-Every SMART attribute has a RAW and a NORMALIZED value. The RAW value is the physical value of the drive while the normalized value is a 1–253 score that the vendor's firmware derives from the raw value using a formula the vendor does not publish. The purpose of normalization is to put every attribute on a common "health" scale, where 100 (or 200) means new and a falling value means degradation. In this section we test whether that normalization helps or hurts prediction. This will help us determine which of the SMART columns to keep and how do we scale them.
+Every SMART attribute has a RAW and a NORMALIZED value. The RAW value is the physical value of the drive while the normalized value is a 1–253 score that the vendor's firmware derives from the raw value using a formula the vendor does not publish. The purpose of normalization is to put every attribute on a common "health" scale, where 100 (or 200) means new and a falling value means degradation. In this section we test whether that normalization helps or hurts prediction. This will help us determine which of the SMART columns to keep and how to scale them.
 
-The raw values have upto 72,000 different values, while the normalized values are fewer than 130.This results in lots of detail getting thrown away. For S5, the normalized value stays at 100 until there are thousands of reallocated sectors. The early warning we saw previously is invisible on the normalized scale. For S9, Toshiba's normalized value hits the floor of 1 at about 40,000 h (4.6 years), so every older Toshiba drive looks the same.
+The raw values have up to 72,000 different values, while the normalized values have fewer than 130. This results in lots of detail getting thrown away. For S5, the normalized value stays at 100 until there are thousands of reallocated sectors. The early warning we saw previously is invisible on the normalized scale. For S9, Toshiba's normalized value hits the floor of 1 at about 40,000 h (4.6 years), so every older Toshiba drive looks the same.
 ![Image 5.4A](documents/images/5.4A.png)
 
 Normalization has compressed large numbers of raw values into a few levels:
@@ -122,14 +122,14 @@ Normalization has compressed large numbers of raw values into a few levels:
 - S7: 72,332 → 48
 - S9: 53,344 → 100
 
-In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep the vendor explicit feature and from the normalized values that are duplicate and are confounded with vendor.
+In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep vendor as an explicit feature and drop the normalized values that are duplicates or are confounded with vendor.
 
 
 ### 5.5 Analysis 5: Correlation, Redundancy and Degradation
 
 This analysis has 2 parts; (1) a spearman rank correlation, (2) whether the change during a window adds signal beyond the window.
 
-Correlated features waste model capacity and make linear coefficients unstable. The table show the mode redundant attributes:
+Correlated features waste model capacity and make linear coefficients unstable. The table shows the most redundant attributes:
 
 | Pair | Spearman ρ | Meaning |
 |---|---|---|
@@ -194,35 +194,36 @@ We can see the growing amount of failures. A large number of drives gain error c
 
 ### 9.1 Class Imbalance
 
-In the original dataset 1 in 945 drive windows ends in failure. This led to four major problems:
-1. Misleading Metrics: Accuracy can not be used to test how good the model is.If the model guessed healthy for all the drives then it would get an accuracy close to 99% We therefore use precision recall curves to test how good the model is. 
+In the natural-rate calibration data, about 1 in 905 drive windows ends in failure. This led to four major problems:
+1. Misleading Metrics: Accuracy can not be used to test how good the model is. If the model guessed healthy for all the drives then it would get an accuracy of about 99.9%. We therefore use precision recall curves to test how good the model is.
 
-2. Train/Test Prior Shift: We down sampled the train set to 1:20 ratio which led to a 4.76% positive record, which is 45 times the test prevalence. A model trained on this data produces an inflated failure rate..
+2. Prior Shift Between Train and the Natural-Rate Fleet: We down sampled the train set to a 1:20 ratio, which led to a 4.76% positive rate, 43 times the calibration prevalence. A model trained on this data produces an inflated failure rate.
 
-3. Cost of False Positive: The EDA shows how hard precision will be. Even the strongest simple rule we discovered "any of S5, S197, S198 is non-zero", flags 5.5% of the drive windows in which only 1.25% are true positives. Thus the threshold we choose must be explicit and not a default value,
+3. Cost of False Positives: The EDA shows how hard precision will be. S5 is non-zero for 47.9% of failing windows but also for 3.4% of healthy ones. At the natural rate of about 905 healthy windows per failure, a simple "S5 is non-zero" rule would be right only about 1.5% of the time. Thus the threshold we choose must be explicit and not a default value.
 
-4. Limited Data for some groups. Some models have insufficient failures in the data set for the model to truly understand them. The failure rate estimates are near 0% if normal approximation is used, so we use poisson confidence intervals to estimate their failure rate.
+4. Limited Data for some groups. Some models have insufficient failures in the data set for the model to truly understand them. The failure rate estimates are near 0% if normal approximation is used, so we use Poisson confidence intervals to estimate their failure rate.
 
 
 ### 9.2 Missing and Manufacturer-Dependent SMART Attributes
 
 S197 is missing for 2.2% of training rows. Every missing value comes from two Toshiba variants (MG08ACA16TEY, MG07ACA14TEY) that do not report the attribute. As this missingness is not random but tied to the model, mean or median imputation will result in false healthy readings, so we keep these values as 'NaN'.
 
-Another issue we observed is the Vendor specific encoding on the SMART attributes. SMART is only loosely standardised. Seagate stores S1 (read error rate) and S7 (seek error rate) as 48-bit composite values in the tens of millions, while other vendors report. The normalized temperature is the actual °C for Seagate, a falling curve for HGST and a constant 100 for Toshiba. Thus some attributes look simple and would reveal the manufacturers and cause leakage.
+Another issue we observed is the Vendor specific encoding on the SMART attributes. SMART is only loosely standardised. Seagate stores S1 (read error rate) and S7 (seek error rate) as 48-bit composite values in the tens of millions, while other vendors use different encodings, so the raw values are not comparable across manufacturers. The normalized temperature is the actual °C for Seagate, a falling curve for HGST and a constant 100 for Toshiba. Thus some attributes partly encode the manufacturer rather than the health of the drive.
 
 ### 9.3 Temporal Distribution Shift and Unseen Drive Models
 
-The training set covers 2023 - Oct 2024 and the test set covers 2025. Evaluation therefore shows real world development. The health of median healthy drivers went from 2.9 to 3.4 years, the capacity shifted drastically as the news models had a 20-24 Tb storage. The newer models never appeared in the test set, and the last test windows show an artificially low failure rate. Taking all this into account we decided to perform vendor and capacity features over raw model identity and consider age features relative to each model's population.
+The training set covers Jan 2023 to Oct 2024 and the test set covers 2025, so evaluation reflects real-world deployment on future data. Train contains 63 of the dataset's 72 drive models, and 67% of the drives in the test set never appear in train. Capacity is also strongly tied to age (ρ = −0.845): newer drives are bigger. Taking all this into account we decided to use vendor and capacity features rather than raw model identity, and to consider age relative to each model's population.
 
 ### 9.4 Challenges Encountered and Workarounds
 
 | Challenge | Why it was a problem | Workaround |
 |---|---|---|
-| Down-sampled training data | Failure rates computed on train are inflated about 45× | Real-world rates (AFR, risk by bucket) computed on the natural-prevalence test split. Where train was needed, negatives re-weighted ×20 |
+| Down-sampled training data | Failure rates computed on train are inflated about 43× | Real-world rates (AFR by vendor, model, age and capacity) computed on the natural-prevalence calibration split. Where train was needed (risk by bucket), negatives re-weighted ×36 |
 | Rare events near 0% | Normal-approximation confidence intervals produced impossible negative bounds for small windows (e.g. 1 failure in 258 rows gives −0.37% to 1.15%) | Wilson score intervals for proportions; exact Poisson intervals for annualised rates |
-| Zero-inflated, heavy-tailed counters | Means, Pearson correlation and t-tests dominated by outliers | Non-parametric tests (Mann–Whitney, KS, Spearman, Kruskal–Wallis, Wilcoxon), Cliff's δ effect sizes, log-scale plots |
-| Odds ratios for counters that are always non-zero | "Odds of failure if non-zero" is undefined when nearly every drive is non-zero (e.g. S9, S194) | Reported "n/a" for those attributes and relied on Cliff's δ and KS instead |
+| Zero-inflated, heavy-tailed counters | Means, Pearson correlation and t-tests dominated by outliers | Non-parametric tests (Spearman, Kruskal–Wallis, Wilcoxon signed-rank), odds ratios, log-scale plots |
+| Odds ratios for counters that are always non-zero | "Odds of failure if non-zero" is undefined when nearly every drive is non-zero (e.g. S9, S194) | Reported "n/a" for those attributes and relied on univariate ROC-AUC instead |
 | Vendor-encoded attributes | Apparent signal in S1, S3, S7 and normalized S194/S199 reflects manufacturer, not health | Within-vendor AUC computed alongside pooled AUC; vendor-confounded attributes flagged |
+
 ## 10. Conclusion
 
 ## References
