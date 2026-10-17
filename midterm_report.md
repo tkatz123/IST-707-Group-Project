@@ -56,36 +56,36 @@ The data also has limits. It comes from one company's fleet, so the drive models
 
 ## 5. Exploratory Data Analysis
 
-The exploratory data analysis was carried out in the EDA_HDD_Failure.ipynb file, where within class comparisons were carried out. Training data gas 8087 failures and the 20:1 down sampling removed healthy windows at random making the SMART attributes in each class unbiased. Most instances of SMART attributes are zero for most drives to counter this U tests, x^2 test of independence,  spearman correlation and Poisson confidence intervals were used to analyse the data.
+The exploratory data analysis was carried out in the EDA_HDD_Failure.ipynb file, where within class comparisons were carried out. Training data has 8087 failures and the 20:1 down sampling removed healthy windows at random making the SMART attributes in each class unbiased. Most instances of SMART attributes are zero for most drives, to handle this χ² test of independence, Spearman correlation, Kruskal–Wallis, Wilcoxon signed-rank, Wilson intervals and Poisson intervals were used to analyse the data. The test split (2025) is held out until final evaluation. Real-world failure rates use the calibration split, which keeps the natural failure rate. 
 
-### 5.1 Analysis 1: Class Imbalance and the Train → Test Prior Shift
+### 5.1 Class Imbalance and the Prior Shift Between Train and the Natural-Rate Fleet
 
-We examined the failure rate in each split with the 95% Wilson confidence interval on each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:20 ratio gives out a lot of false negatives, and if a model was to predict a drive not to fail for all test data that it would get an accuracy of 99%, which is misleading. 
+We examined the failure rate in each split with the 95% Wilson confidence interval overall and for each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:36 ratio gives out a lot of false positives, and if a model would get an accuracy of about 99.9% on the natural-rate data
 
-As a result we came to the conclusion that there is a severe imbalance. The train has 1 failure : 20 healthy (4.76%). Calib and test are about 1 : 900 (0.11%). A classifier trained on this data will over predict failure. To counter this we need to take into account PR-AUC or set a false alarm rate.
+As a result we came to the conclusion that there is a severe imbalance. The train has 1 failure : 20 healthy (4.76%). Calib is about 1 : 905 (0.110%), a 43× gap. After undoing the down-sampling (each kept healthy window stands for about 36 real ones), the train-period rate is 0.139%, close to calib’s 0.110%, so most of the gap comes from the sampling. A classifier trained on this data will over predict failure. To counter this we need to take into account PR-AUC or set a false alarm rate and recalibrate the predicted probabilities on the calibration split.
 
 | Split | Period | Drive-windows | Failures | Failure rate (95% Wilson CI) | Healthy : failed |
 |---|---|---|---|---|---|
 | Train | Jan 2023 – Oct 2024 | 169,827 | 8,087 | 4.762% (4.662–4.864%) | 20 : 1 |
 | Calibration | Nov – Dec 2024 | 297,009 | 328 | 0.110% (0.099–0.123%) | 905 : 1 |
-| Test | Jan – Dec 2025 | 3,521,973 | 3,722 | 0.106% (0.102–0.109%) | 945 : 1 |
+| Test | Jan – Dec 2025 | 3,521,973 | 3,722 | held out | held out |
 
 ### 5.2 Analysis 2: Who Fails? Manufacturer, Model and Age
 
-In this analysis we calculate annual failure rate (afr) for all the manufacturers, and for the 15 most common drive models. We also check if failure is independent of the model and plot afr against drive age. This will help us determine if the failure is dependent on the model, because if it is then there should be equal representation of all models in the train test split. We use the test split for this analysis as the results on the train split will be inflated.
+In this analysis we calculate annual failure rate (afr) for all the manufacturers, and for the 15 most common drive models. We use the calibration split, which keeps the natural failure rate (1 in 905); the test split is held out until final evaluation. We also check if failure is independent of the model and plot afr against drive age. This will help us determine if the failure is dependent on the model, because if it is then there should be equal representation of all models in the train test split. We use the test split for this analysis as the results on the train split will be inflated.
 
-The results show that HGST drives fail 4.7× as often as WDC drives, and the confidence intervals do not overlap. A x^2 test of independence across 19 models rejects the null hypothesis "failure does not depend on the model" with a p value<0.001.
+The results show that HGST drives fail at 2.61% per year, about 3× WDC’s 0.85%, and HGST’s confidence interval does not overlap with any other vendor’s. Across the 15 models with at least 5,000 windows (χ² = 113.9, dof = 14, p ≈ 10⁻¹⁷). However, Cramér’s V is only 0.020, a small effect.
 
-We also determined that age follows the classic reliability curve, as AFR is 0.97%  in the first year and rises to 3.1% at 6-8 years and then drops after 8 years. Another observation is that capacity also has a hand in drive failure. The older 8-12 TB drives fail more often than the newer 20-22 TB drives.
+We also determined that age does not follows the classic reliability curve, as AFR is 0.92%  in the first and second year and rises to 3.56% at 5-6 years and then falls to1.48% at 7–8 years and 0.88% at 8–10. Another observation is that capacity also has a hand in drive failure. The older 2 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
 
-  | Capacity | 8 TB | 12 TB | 14 TB | 16 TB | 20 TB | 22 TB | 24 TB |
+  | Capacity | 8 TB | 12 TB | 14 TB | 16 TB | 22 TB |
   |---|---|---|---|---|---|---|---|
-  | AFR | 1.87% | 2.29% | 1.16% | 1.01% | 0.58% | **0.41%** | 2.56% |
+  | AFR | 1.46% | 2.21% | 1.67% | 0.83% | **1.27%** |
 
 
 ### 5.3 Analysis 3: SMART Signatures of Failing vs Healthy Drives
 
-In this analysis we check how different the failing values of the 14 SMART attributes are to the healthy ones. We check the % on non-zero values by class and the odds ratio of failure with non-zero values. This will help tell us which attributes carry a signal and whether it is the presence or the size of the value that matters.
+In this analysis we check how different the failing values of the 14 SMART attributes are to the healthy ones. We check the % of non-zero values by class and the odds ratio of failure with non-zero values. This will help tell us which attributes carry a signal and whether it is the presence or the size of the value that matters.
 
 The following table shows the attributes, what percantage of the failed drives had a non-zero value for that attribute and the 95% confidence interval.
 
@@ -122,7 +122,7 @@ Normalization has compressed large numbers of raw values into a few levels:
 - S7: 72,332 → 48
 - S9: 53,344 → 100
 
-In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep the vendor explicit feature and from the normalized values that are duplicate and can leak the vendor identity to the model.
+In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep the vendor explicit feature and from the normalized values that are duplicate and are confounded with vendor.
 
 
 ### 5.5 Analysis 5: Correlation, Redundancy and Degradation
