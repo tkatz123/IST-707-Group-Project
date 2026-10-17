@@ -158,11 +158,28 @@ We can see the growing amount of failures. A large number of drives gain error c
 
 ## 6. Baselines
 
+Both baselines are computed in `baselines/baseline_models.ipynb` and scored on the calibration split, which keeps the natural failure rate of about 1 in 905. The test split stays closed until final evaluation.
+
 ### 6.1 Operational Threshold Baseline
+
+The first baseline is the rule operators use today: flag a drive if it has any reallocated sectors (`smart_5_raw_last > 0`). Nothing is trained. On calibration the rule flags about 42 of every 1,000 drives and catches 50.3% of the drives that fail in the next 30 days, but only 1.3% of the drives it flags actually fail, about 1 in 75. Because the rule gives a yes/no answer rather than a ranking, the operator cannot choose how many drives to replace; the data decides that.
 
 ### 6.2 Random or Null-Hypothesis Baseline
 
+The second reference point is a model with no information: flag drives at random. Its precision equals the failure rate (0.11%) at any budget, its recall equals the share of drives flagged (1% at 10 per 1,000), and its PR-AUC equals the failure rate, 0.0011. Any model has to clear this to show it has learned something.
+
 ### 6.3 Baseline Evaluation Metrics
+
+Accuracy is not used, since predicting "healthy" for every drive scores about 99.9% (§9.1). The primary metric is precision and recall at a fixed replacement budget: rank drives by risk, replace the top N per 1,000, and measure what share of those were about to fail (precision) and what share of all failures were caught (recall). PR-AUC summarizes the ranking over all budgets. F1 at a single threshold is reported as a secondary figure.
+
+The rule flags more drives than any budget below, so its figures at a budget assume N of its flagged drives are picked at random: precision stays the same and recall scales by N / 42.
+
+| Calibration split | PR-AUC | Precision @ 1 / 1k | Precision @ 10 / 1k | Recall @ 1 / 1k | Recall @ 10 / 1k | F1 |
+|---|---|---|---|---|---|---|
+| SMART 5 rule | 0.0073 | 1.3% | 1.3% | 1.2% | 12.1% | 0.026 |
+| Random | 0.0011 | 0.11% | 0.11% | 0.1% | 1.0% | n/a |
+
+The rule is about 12 times better than random at picking failing drives, but almost every drive it flags is healthy. The trained model in §7 is compared against these figures.
 
 ## 7. Best Model So Far
 
@@ -206,7 +223,7 @@ In the natural-rate calibration data, about 1 in 905 drive windows ends in failu
 
 ### 9.2 Missing and Manufacturer-Dependent SMART Attributes
 
-S197 is missing for 2.2% of training rows. Every missing value comes from two Toshiba variants (MG08ACA16TEY, MG07ACA14TEY) that do not report the attribute. As this missingness is not random but tied to the model, mean or median imputation will result in false healthy readings, so we keep these values as 'NaN'.
+S197 is missing for 2.2% of training rows. Every missing value comes from two Toshiba variants (MG08ACA16TEY, MG07ACA14TEY) that do not report the attribute. As this missingness is not random but tied to the model, mean or median imputation will result in false healthy readings, so we keep these values as 'NaN'. Logistic regression cannot take missing values, so the baseline imputes the median and adds a separate "not reported" indicator column, which keeps the missingness visible to the model.
 
 Another issue we observed is the Vendor specific encoding on the SMART attributes. SMART is only loosely standardised. Seagate stores S1 (read error rate) and S7 (seek error rate) as 48-bit composite values in the tens of millions, while other vendors use different encodings, so the raw values are not comparable across manufacturers. The normalized temperature is the actual °C for Seagate, a falling curve for HGST and a constant 100 for Toshiba. Thus some attributes partly encode the manufacturer rather than the health of the drive.
 
