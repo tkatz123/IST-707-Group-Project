@@ -199,13 +199,59 @@ The rule is about 12 times better than random at picking failing drives, but alm
 
 ### 8.1 Remaining Modeling Tasks
 
+In the next step we train 6 models and compare them against the baseline models. All 6 models will have the same inputs chosen from the EDA:
+
+1. raw values and 30 day changes foe s5, s197, s198
+2. drive age
+3. wear counters (S193, and one of S4 or S12, since those two are nearly identical)
+4. temperature
+5. manufacturer
+
+We leave out vendor normalized values; s10: always zero and s199: no signal. Missing S197 values are interpolated and left as missing.
+
+We picked six models to run from simple to complex. This would help test whether the extra complexity results in better predictions.
+
+
+| Model | What it does, in plain terms | Why it fits this problem |
+|---|---|---|
+| **Logistic regression** | Gives each input a weight and adds up the evidence into a single risk score. | Simple, fast, and easy to explain. It shows how much each warning sign raises the risk. It needs the very skewed counters log-scaled first (§5.4), so it also tests whether that scaling helps. |
+| **Decision tree** | A flowchart of yes/no questions, such as “Does it have any reallocated sectors?” and “Is it older than five years?” | Matches what the EDA found: any non-zero error count is a red flag. Operators can read the rules directly. On its own, it can memorise the training data, so we limit how deep it grows. |
+| **Random forest** | Hundreds of decision trees, each built on a different random slice of the data, then averaged. | More stable than a single tree. It copes with skewed values and drive-to-drive differences without any rescaling. |
+| **XGBoost** | Builds trees one after another, with each new tree focused on the mistakes of the trees before it. | Usually the strongest method on table-shaped data like ours. It handles missing values (such as S197 on two Toshiba models) by itself, and it picks up combinations like “old drive *and* rising pending sectors.” |
+| **Support vector machine (SVM)** | Finds the boundary that separates failing from healthy drives with the widest possible gap. | A different way of drawing the line from the tree models, which makes it a useful check. It is slow on hundreds of thousands of rows and needs rescaled inputs, so we will train it on a sample. Its scores also need converting into probabilities. |
+| **LightGBM** *(our sixth pick)* | Works like XGBoost, but groups values into bins so it trains much faster. | Built for millions of rows, which matters when the model is retrained on the full fleet. It can take manufacturer and model directly as categories, so they don’t have to be turned into dozens of yes/no columns. It is also a direct check on whether XGBoost’s results hold up. |
+
 ### 8.2 Model Tuning and Probability Calibration
+
+Tuning: Each mode's setting such as tree depth and penalty on complexity will be tunned on the training split. Cross validation will be split in such a way that no model is scored on months that came before the months it was trained on.
+
+Rare Failure: Failures will be given extra weight in training so that the models don not learn to simply predict "healthy" every time.
+
 
 ### 8.3 Manufacturer-Bias Audit
 
+The EDA shows us that failure rates differ by manufacturer (HGST is about 3× WDC), and that different SMART attributes mean different things for some manufacturers. A model could therefore end up learning “HGST drives are risky” instead of reading the actual health signals . To check for these we will:
+1. reports results separately for each manufacturer and for the largest drive models.
+2.Compare the model with and without the manufacturer feature, as a result if the performance drops the model is leaning on the brand rather than drive health.
+3. Check drives that are missing an attribute and see if they are not unfairly flagged.
+
+
 ### 8.4 Final Evaluation and Error Analysis
 
+After the final model and its calibrations are locked, we will use the test split to report precision and recall at 1 and 10 replacements per 1,000 drives, PR-AUC, and the f1-score.
+
+The results will be stored and com[paredwith the SMART 5 rule and random guessing. We will look at the missed failure, false alarms, and how the results change. with drive age, manufacturer, and models that are not in the training split. Additionally we will measure how much the 2025 fleet differs from 2023–24, to explain any drop in performance between calibration and test.
+
 ### 8.5 Timeline and Deliverables
+
+| Step | Work | Deliverable | Target date |
+|---:|---|---|---|
+| 1 | Feature set and pipeline from the EDA | `features` notebook | Sun 25 Oct |
+| 2 | Train and tune the six models | `models` notebook, comparison table | Sun 15 Nov |
+| 3 | Probability calibration on the calibration split | Calibrated models, reliability plots | Fri 20 Nov |
+| 4 | Manufacturer-bias audit | Per-vendor results table | Wed 25 Nov |
+| 5 | One-time test evaluation and error analysis | Final results, error analysis | Mon 30 Nov |
+| 6 | Final report and presentation | Report PDF, slides | First week of December |
 
 ## 9. Problems and Challenges
 
