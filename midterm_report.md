@@ -8,13 +8,13 @@ Data centers hold hundreds of thousands of drives, and according to our data onl
 
 ## 2. Stakeholders and Significance
 
-Drive failure costs the companies running large storage fleets, the smaller teams running their own storage, and the companies that build the drives. Each needs something different from a failure prediction.
+Drive failure affects the companies running large storage fleets, the smaller teams running their own storage, and the companies that build the drives. Each needs something different from a failure prediction.
 
 Firstly, **data center and cloud storage operators** (Backblaze for example) are responsible for managing hundreds of thousands of drives storing data for their customers. Backblaze, for example, protects data by splitting each file into 20 pieces spread across 20 storage servers, with 17 pieces holding the data and 3 holding backup pieces of that data.[^backblaze_durability] Every failed drive uses up part of that safety margin until the drive is replaced and the data is rebuilt. Replacing a drive before it fails never uses up that margin, putting the data at less risk of being lost. Data center/cloud operators such as Backblaze work with a fixed budget of spare drives and technician hours so they need a set list of which drives to replace first, rather than replacing them as they fail. Today, about half of failing drives show no bad sectors beforehand, so replacing those drives is purely emergency work. A ranked list turns some of those failures into planned replacements.
 
 Another stakeholder in this project is **enterprise IT teams**, these consist of companies running their own storage on a much smaller scale than a company like Backblaze. A company like Backblaze that owns a massive amount of drives only experiences about 1.3% drive failure per year,[^backblaze_drivestats] so a company with a smaller amount of drives, say 500, would only see about 6 or 7 failures per year. That is too few failures for one of these IT teams to learn failure patterns from their own data. They need an early warning of failures that avoids outages they likely don't have the staff or spare parts to absorb. They could likely benefit from using the learned pattern of failure from a company with hundreds of thousands of drives and apply it to their own storage infrastructure.
 
-Finally, **drive manufacturers**, the ones who build the drives and decide what health readings each drive reports could benefit from our project as well. Readings aren't consistent across manufacturers and our data supports this. Some readings are reported on different scales by different manufacturers, and some are not reported at all by certain drive models. The clearest example of this is temperature: in the normalized temperature reading, Seagate reports the actual temperature, Toshiba reports a constant 100, and WDC reports about 59, even though all their drives run at 32 to 35 °C. This project can give manufacturers evidence of which readings actually predict failure, which are missing for some manufacturers, and which are inconsistent. This will help drive manufacturers determine what's worth reporting and hopefully standardize reporting across manufacturers.
+Finally, **drive manufacturers**, the ones who build the drives and decide what health readings each drive reports could benefit from our project as well. Readings aren't consistent across manufacturers and our data supports this. Some readings are reported on different scales by different manufacturers, and some are not reported at all by certain drive models. The clearest example of this is temperature: in the normalized temperature reading, Seagate reports the actual temperature, Toshiba reports a constant 100, and WDC reports about 59 on its own scale, even though all their drives run at 32 to 35 °C. This project can give manufacturers evidence of which readings actually predict failure, which are missing for some manufacturers, and which are inconsistent. This will help drive manufacturers determine what's worth reporting and hopefully standardize reporting across manufacturers.
 
 ## 3. Related Work
 
@@ -34,7 +34,7 @@ The dataset used for this project is a drive stats dataset published by Backblaz
 
 ### 4.2 Size and Features
 
-Across the twelve quarters, the raw data holds 314,457,081 drive-days: 12.2 GB compressed and roughly 110 GB uncompressed as CSVs. The fleet grew over the period from 21.2 million daily records in Q1 2023 to 30.6 million in Q4 2025. The set of columns also changed over time, growing from 179 in Q1 2023 to 197 from Q2 2024 and onward. Because we train on 2023 and 2024 and test on 2025, only the 179 columns present in every quarter are usable. From those, we kept 33: five that identify the drive and day (date, serial number, model, capacity and the failure flag) and 14 SMART attributes, each as both its raw value and the manufacturer's normalized score. We excluded SMART 187 and 188 even though Backblaze highlights them, because only 35% of drives report them and which drives do depends on the manufacturer, so a model could learn the brand instead of the drive's health. We also removed solid state boot drives, which report different readings with different physical meanings: 22 models and 1.142% of rows. That leaves 310,866,734 drive-days across 72 hard drive models. Both figures correct our proposal, which listed 13 SSD models at 0.78% and stated that the best-supported attributes all exceeded 97% coverage.
+Across the twelve quarters, the raw data holds 314,457,081 drive-days: 12.2 GB compressed and roughly 110 GB uncompressed as CSVs. The fleet grew over the period from 21.2 million drive-days in Q1 2023 to 30.6 million in Q4 2025, or roughly 236,000 to 333,000 drives in operation on an average day. The set of columns also changed over time, growing from 179 in Q1 2023 to 197 from Q2 2024 and onward. Because we train on 2023 and 2024 and test on 2025, only the 179 columns present in every quarter are usable. From those, we kept 33: five that identify the drive and day (date, serial number, model, capacity and the failure flag) and 14 SMART attributes, each as both its raw value and the manufacturer's normalized score. We excluded SMART 187 and 188 even though Backblaze highlights them, because only 35% of drives report them and which drives do depends on the manufacturer, so a model could learn the brand instead of the drive's health. We also removed solid state boot drives, which report different readings with different physical meanings: 22 models and 1.142% of rows. That leaves 310,866,734 drive-days across 72 hard drive models. Both figures correct our proposal, which listed 13 SSD models at 0.78% and stated that the best-supported attributes all exceeded 97% coverage.
 
 We then grouped each drive's days into non-overlapping 30-day windows on a fixed calendar starting January 1, 2023, so a given window covers the same 30 days for every drive. Each row of the modeling table is one drive over one window, 3,988,809 rows in total. For each of the 14 attributes, in both forms, we record the first reading in the window, the last reading and the change between them, giving 84 SMART features. Five drive descriptors (model, capacity, days observed in the window, days between the first and last reading, and days observed so far) bring the total to 89 features. The label is 1 if the drive records a failure in the next 30-day window and 0 otherwise. It is the only value that looks forward in time. Of the 13,282 failures in the source data, 12,137 (91.4%) became labeled failures. The rest cannot be labeled: a drive that fails in its first window has no earlier window, the final window has no next window, and windows at split boundaries are removed.
 
@@ -44,7 +44,7 @@ We then grouped each drive's days into non-overlapping 30-day windows on a fixed
 | Calibration | Nov 1 to Dec 20, 2024 | 297,009 | 328 | 1 in 905 (true rate) |
 | Test | Jan 1 to Dec 15, 2025 | 3,521,973 | 3,722 | 1 in 946 (true rate) |
 
-We split the table by time, as shown above. Before sampling, the training period had about 1 failure for every 722 windows, so rare that a model would learn to predict "healthy" for almost everything, so we kept every failed window and 20 healthy windows for each one. This sampling makes the model's predicted probabilities too high, which is why the calibration split exists: it is left at the true failure rate and is used to correct those probabilities. It sits at the end of the training period so that its failure rate (1 in 905) is close to the test year's (1 in 946). Calibrating on all of 2023 and 2024 would have carried the higher 2023 failure rate into every prediction. Finally, a window is kept only if the 30 days it predicts fall in the same split, so no information crosses a boundary between training, calibration and testing.
+We split the table by time, as shown above. Before sampling, the training period had about 1 failure for every 722 windows. Failures were so rare that a model would learn to predict "healthy" for almost everything, so we kept every failed window and 20 healthy windows for each one. This sampling makes the model's predicted probabilities too high, which is why the calibration split exists: it is left at the true failure rate and is used to correct those probabilities. It sits at the end of the training period so that its failure rate (1 in 905) is close to the test year's (1 in 946). Calibrating on all of 2023 and 2024 would have carried the higher 2023 failure rate into every prediction. Finally, a window is kept only if the 30 days it predicts fall in the same split, so no information crosses a boundary between training, calibration and testing.
 
 ### 4.3 Why We Trust It
 
@@ -56,11 +56,11 @@ The data also has limits. It comes from one company's fleet, so the drive models
 
 ## 5. Exploratory Data Analysis
 
-The exploratory data analysis was carried out in the EDA_HDD_Failure.ipynb file, where within class comparisons were carried out. Training data has 8087 failures and the 20:1 down sampling removed healthy windows at random making the SMART attributes in each class unbiased. Most instances of SMART attributes are zero for most drives, to handle this χ² test of independence, Spearman correlation, Kruskal–Wallis, Wilcoxon signed-rank, Wilson intervals and Poisson intervals were used to analyse the data. The test split (2025) is held out until final evaluation. Real-world failure rates use the calibration split, which keeps the natural failure rate. 
+The exploratory data analysis was carried out in the `EDA_HDD_Failure.ipynb` file, where within class comparisons were carried out. Training data has 8,087 failures and the 20:1 down sampling removed healthy windows at random making the SMART attributes in each class unbiased. Most instances of SMART attributes are zero for most drives, to handle this we used χ² test of independence, Spearman correlation, Kruskal–Wallis, Wilcoxon signed-rank, Wilson intervals and Poisson intervals to analyse the data. The test split (2025) is held out until final evaluation. Real-world failure rates use the calibration split, which keeps the natural failure rate. 
 
 ### 5.1 Class Imbalance and the Prior Shift Between Train and the Natural-Rate Fleet
 
-We examined the failure rate in each split with the 95% Wilson confidence interval overall and for each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:20 ratio over-predicts failure and gives out a lot of false positives. Also, a model that predicted every drive to be healthy would get an accuracy of about 99.9% on the natural-rate data, which is misleading.
+We examined the failure rate in each split with the 95% Wilson confidence interval overall for each window. As the failures are very rare in the original data, the train set was rebalanced. A model trained on the 1:20 ratio over-predicts failure and gives out a lot of false positives. Also, a model that predicted every drive to be healthy would get an accuracy of about 99.9% on the natural-rate data, which is misleading.
 
 As a result we came to the conclusion that there is a severe imbalance. The train has 1 failure : 20 healthy (4.76%). Calib is about 1 : 905 (0.110%), a 43× gap. After undoing the down-sampling (each kept healthy window stands for about 36 real ones), the train-period rate is 0.139%, close to calib’s 0.110%, so most of the gap comes from the sampling. A classifier trained on this data will over predict failure. To counter this we need to take into account PR-AUC or set a false alarm rate and recalibrate the predicted probabilities on the calibration split.
 
@@ -72,16 +72,15 @@ As a result we came to the conclusion that there is a severe imbalance. The trai
 
 ### 5.2 Analysis 2: Who Fails? Manufacturer, Model and Age
 
-In this analysis we calculate annual failure rate (afr) for all the manufacturers, and for the 15 most common drive models. We use the calibration split, which keeps the natural failure rate (1 in 905); the test split is held out until final evaluation. We also check if failure is independent of the model and plot afr against drive age. This will help us determine if the failure is dependent on the model, because if it is then there should be equal representation of all models in the train test split.
+In this analysis we calculate annual failure rate (AFR) for all the manufacturers, and for the 15 most common drive models. We use the calibration split, which keeps the natural failure rate (1 in 905); the test split is held out until final evaluation. We also check if failure is independent of the model and plot AFR against drive age. This will help us determine whether failure depends on the drive model. If it does, a model could learn the drive's brand or model name instead of its health, which the manufacturer-bias audit in §8.3 checks for.
 
 The results show that HGST drives fail at 2.61% per year, about 3× WDC’s 0.85%, and HGST’s confidence interval does not overlap with any other vendor’s. Across the 15 models with at least 5,000 windows, a χ² test of independence rejects "failure does not depend on the model" (χ² = 113.9, dof = 14, p ≈ 10⁻¹⁷). However, Cramér’s V is only 0.020, a small effect, so the tiny p-value mostly reflects the large sample.
 
-We also determined that age does not follow the classic reliability curve, as AFR is 0.92% in the first and second year, rises to 3.56% at 5–6 years, and then falls to 1.48% at 7–8 years and 0.88% at 8–10. Another observation is that capacity also has a hand in drive failure. The older 12 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
+We also determined that age does not follow the classic reliability curve, as AFR is 0.92% in the first and second year, rises to 3.56% at 5–6 years, and then falls to 1.48% from 7 up to 8 years and 0.88% from 8 up to 10. Another observation is that capacity also has a hand in drive failure. The older 12 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
 
   | Capacity | 8 TB | 12 TB | 14 TB | 16 TB | 22 TB |
   |---|---|---|---|---|---|
   | AFR | 1.46% | 2.21% | 1.67% | **0.83%** | 1.27% |
-
 
 ### 5.3 Analysis 3: SMART Signatures of Failing vs Healthy Drives
 
@@ -106,15 +105,13 @@ The following table shows the attributes, what percentage of the failed drives h
 | S199 UltraDMA CRC Errors | 1.4% | 1.6% | 1.09 (0.9–1.3) |
 | S10 Spin Retry Count | 0.0% | 0.0% | N/A |
 
-
-S5, S197, S198 are seen to be the three most dominant precursors. A non-zero value for these three attributes significantly raises the odds of failure. However they are not sufficient on their own because about half of the failing drives have S5 = 0. Drives that fail suddenly, for example through electronics, motor or head failure, give no warning in these counters, which caps the recall that SMART alone can achieve.
-
+S5, S197, S198 are seen to be the three most dominant precursors. A non-zero value for these three attributes significantly raises the odds of failure. However they are not sufficient on their own because about half of the failing drives have S5 = 0. Drives that fail suddenly, for example due to electronics, motor or head failure, give no warning in these counters, which caps the recall that SMART alone can achieve.
 
 ### 5.4 Analysis 4: Raw vs Normalized SMART Values (What Normalization Does)
 
-Every SMART attribute has a RAW and a NORMALIZED value. The RAW value is the physical value of the drive while the normalized value is a 1–253 score that the vendor's firmware derives from the raw value using a formula the vendor does not publish. The purpose of normalization is to put every attribute on a common "health" scale, where 100 (or 200) means new and a falling value means degradation. In this section we test whether that normalization helps or hurts prediction. This will help us determine which of the SMART columns to keep and how to scale them.
+Every SMART attribute has a RAW and a NORMALIZED value. The RAW value is the physical value of the drive while the normalized value is a 1–253 score that the vendor's firmware derives from the raw value using a formula the vendor does not publish. The purpose of normalization is to put every attribute on a common "health" scale, where 100 (or 200) means healthy and a falling value means degradation. In this section we test whether that normalization helps or hurts prediction. This will let us determine which of the SMART columns to keep and how to scale them.
 
-The raw values have up to 72,000 different values, while the normalized values have fewer than 130. This results in lots of detail getting thrown away. For S5, the normalized value stays at 100 until there are thousands of reallocated sectors. The early warning we saw previously is invisible on the normalized scale. For S9, Toshiba's normalized value hits the floor of 1 at about 40,000 h (4.6 years), so every older Toshiba drive looks the same.
+The raw values have up to about 72,000 different values, while the normalized values have fewer than 130. This results in a significant amount of detail getting thrown away. For S5, the normalized value stays at 100 until there are thousands of reallocated sectors. The early warning we saw previously is invisible on the normalized scale. For S9, Toshiba's normalized value hits the floor of 1 at about 40,000 h (4.6 years), so every older Toshiba drive looks the same.
 ![Image 5.4A](documents/images/5.4A.png)
 
 Normalization has compressed large numbers of raw values into a few levels:
@@ -122,8 +119,7 @@ Normalization has compressed large numbers of raw values into a few levels:
 - S7: 72,332 → 48
 - S9: 53,344 → 100
 
-In the case of temperature Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for everyone else. What we suggest is training the model on raw SMART values. We need to keep vendor as an explicit feature and drop the normalized values that are duplicates or are confounded with vendor.
-
+In the case of temperature: Seagate's normalized value is the temperature in °C (median 32). HGST uses a falling curve (median 176). Toshiba reports a constant 100. WDC reports about 59 on its own scale. Even though the actual temperatures are almost the same (32–35 °C). S199's normalized baseline is 100 for WDC and 200 for all other vendors. Through this analysis we conclude that training the model on raw SMART values will lead to better results. We need to keep vendor as an explicit feature and drop the normalized values that are duplicates or are confounded with vendor.
 
 ### 5.5 Analysis 5: Correlation, Redundancy and Degradation
 
@@ -139,8 +135,7 @@ Correlated features waste model capacity and make linear coefficients unstable. 
 | S197 Pending ↔ S198 Uncorrectable | +0.803 | Related but not identical; keep both |
 | S3 Spin-Up ↔ S7 / S1 / S193 | −0.74 to −0.76 | Vendor encoding again |
 
-
-We can see clear correlation between s4 and s12 so we can drop one. S1 and S7 also have a high correlation and their correlation with other attributes is similar thus one of them could also be dropped. S197 and S198 are strongly related but their correlation with other attributes is not identical, so both stay.
+We can see clear correlation between S4 and S12 so we can drop one. S1 and S7 also have a high correlation and their correlation with other attributes is similar thus one of them could also be dropped. S197 and S198 are strongly related but their correlation with other attributes is not identical, so both stay.
 
 The following table shows the attribute and the degradation it has during the final 30 days.
 
@@ -152,13 +147,11 @@ The following table shows the attribute and the degradation it has during the fi
 | S193 Load/Unload | 0.602 | 0.567 | 80.0% | 69.8% | 1.1× |
 | S9 Power-On Hours | 0.632 | 0.511 | 99.9% | 99.9% | 1.0× |
 
-We can see the growing amount of failures. A large number of drives gain error counters before failing. On its own, the change is slightly weaker than the level (S5: 0.656 vs 0.725). Many failing drives already had errors at the start of the window. S9 rises in almost every window for both classes. 
-
-
+This table shows that many failing drives gain error counters in their final 30 days, while very few healthy drives do. On its own, the change is slightly weaker than the level (S5: 0.656 vs 0.725). Many failing drives already had errors at the start of the window. S9 rises in almost every window for both classes. 
 
 ## 6. Baselines
 
-Both baselines are computed in `baselines/baseline_models.ipynb` and scored on the calibration split, which keeps the natural failure rate of about 1 in 905. The test split stays closed until final evaluation.
+Both baselines are built in `baselines/baseline_models.ipynb` and scored on the calibration split, which keeps the natural failure rate of about 1 in 905. The test split stays closed until final evaluation.
 
 ### 6.1 Operational Threshold Baseline
 
@@ -166,7 +159,7 @@ The first baseline is the rule operators use today: flag a drive if it has any r
 
 ### 6.2 Random or Null-Hypothesis Baseline
 
-The second reference point is a model with no information: flag drives at random. Its precision equals the failure rate (0.11%) at any budget, its recall equals the share of drives flagged (1% at 10 per 1,000), and its PR-AUC equals the failure rate, 0.0011. Any model has to clear this to show it has learned something.
+The second reference point is a model built on no information: it flags drives at random. Its precision is the failure rate (0.11%) at any budget, its recall is the share of drives flagged (1% at 10 per 1,000), and its PR-AUC is the failure rate, 0.0011. We will use this baseline to determine if future models have actually learned the patterns leading to drive failures.
 
 ### 6.3 Baseline Evaluation Metrics
 
@@ -214,15 +207,15 @@ Accuracy is not used as the primary metric because the overwhelming majority of 
 
 For the results below, the model was refit on all of train and scored on the calibration split, which keeps the true failure rate of about 1 in 905. Drives are ranked by predicted risk and the top N per 1,000 are flagged, the same budget setup as §6.3.
 
-| Budget (per 1,000) | LR precision | LR recall | SMART 5 rule precision | SMART 5 rule recall |
-|---|---|---|---|---|
-| 1 | 15.8% | 14.3% | 1.3% | 1.2% |
-| 2 | 11.6% | 21.0% | 1.3% | 2.4% |
-| 5 | 7.2% | 32.6% | 1.3% | 6.0% |
-| 10 | 5.0% | 44.8% | 1.3% | 12.1% |
-| 41.7 (the rule's own) | 1.8% | 66.2% | 1.3% | 50.3% |
+| Budget (per 1,000) | LR precision | LR recall | SMART 5 rule precision | SMART 5 rule recall | Random precision | Random recall |
+|---|---|---|---|---|---|---|
+| 1 | 15.8% | 14.3% | 1.3% | 1.2% | 0.11% | 0.1% |
+| 2 | 11.6% | 21.0% | 1.3% | 2.4% | 0.11% | 0.2% |
+| 5 | 7.2% | 32.6% | 1.3% | 6.0% | 0.11% | 0.5% |
+| 10 | 5.0% | 44.8% | 1.3% | 12.1% | 0.11% | 1.0% |
+| 41.7 (the rule's own) | 1.8% | 66.2% | 1.3% | 50.3% | 0.11% | 4.2% |
 
-Rule rows below its own budget of 41.7 are random draws from the drives it flags (§6.3), so its precision stays flat.
+Rule rows below its own budget of 41.7 are random draws from the drives it flags (§6.3), so its precision stays flat. Random precision equals the failure rate at every budget, and random recall equals the share of drives flagged.
 
 PR-AUC is 0.082 for logistic regression, against 0.0073 for the SMART 5 rule and 0.0011 for random. At a budget of 1 per 1,000, about 1 in 6 flagged drives goes on to fail, against about 1 in 75 for the rule. At the rule's own budget of about 42 per 1,000, the model catches 66.2% of failures where the rule catches 50.3%.
 
@@ -264,7 +257,7 @@ Several limitations must be considered:
 - **Class imbalance:** Failure windows represent a small proportion of the dataset, making precision and recall at practical replacement budgets more informative than accuracy.
 - **Sampling bias:** The training dataset was downsampled to a 20:1 healthy-to-failure ratio, while the calibration and test datasets retain their observed prevalence. This difference can affect the interpretation of predicted probabilities.
 - **Missing telemetry:** Some SMART attributes contain missing values, which may reflect device-specific reporting behavior rather than random data loss.
-- **Drive and manufacturer differences:** Telemetry behavior varies across drive models and manufacturers. A substantial proportion of test drives come from models not observed during training, creating a potential generalization challenge.
+- **Drive and manufacturer differences:** Telemetry behavior varies across drive models and manufacturers. Nine of the 72 drive models never appear in the training split, so the model may meet hardware in 2025 that it has not seen before, creating a potential generalization challenge.
 - **Limited model comparison:** Logistic Regression is the only machine learning model evaluated so far. Additional models can be explored in future work to determine whether alternative approaches improve failure detection.
 
 Overall, Logistic Regression establishes the initial supervised-learning approach for the project. By combining multiple telemetry features, it provides a foundation for ranking drives according to estimated failure risk and supporting data-driven replacement decisions. Future work will focus on evaluating additional models, refining feature selection, improving probability calibration, and assessing performance across different drives and time periods.
@@ -275,16 +268,15 @@ Overall, Logistic Regression establishes the initial supervised-learning approac
 
 In the next step we train 6 models and compare them against the baseline models. All 6 models will have the same inputs chosen from the EDA:
 
-1. raw values and 30 day changes for s5, s197, s198
+1. raw values and 30 day changes for S5, S197, S198
 2. drive age
 3. wear counters (S193, and one of S4 or S12, since those two are nearly identical)
 4. temperature
 5. manufacturer
 
-We leave out vendor normalized values; s10: always zero and s199: no signal. Missing S197 values are kept as missing rather than filled in; models that cannot take missing values (logistic regression, SVM) get the median plus a "not reported" indicator column, as in the baseline (§9.2).
+We leave out vendor normalized values; S10: always zero and S199: no signal. Missing S197 values are kept as missing rather than filled in; models that cannot take missing values (logistic regression, SVM) get the median plus a "not reported" indicator column, as in the baseline (§9.2).
 
 We picked six models to run from simple to complex. This would help test whether the extra complexity results in better predictions.
-
 
 | Model | What it does, in plain terms | Why it fits this problem |
 |---|---|---|
@@ -293,7 +285,7 @@ We picked six models to run from simple to complex. This would help test whether
 | **Random forest** | Hundreds of decision trees, each built on a different random slice of the data, then averaged. | More stable than a single tree. It copes with skewed values and drive-to-drive differences without any rescaling. |
 | **XGBoost** | Builds trees one after another, with each new tree focused on the mistakes of the trees before it. | Usually the strongest method on table-shaped data like ours. It handles missing values (such as S197 on two Toshiba models) by itself, and it picks up combinations like “old drive *and* rising pending sectors.” |
 | **Support vector machine (SVM)** | Finds the boundary that separates failing from healthy drives with the widest possible gap. | A different way of drawing the line from the tree models, which makes it a useful check. It is slow on hundreds of thousands of rows and needs rescaled inputs, so we will train it on a sample. Its scores also need converting into probabilities. |
-| **LightGBM** *(our sixth pick)* | Works like XGBoost, but groups values into bins so it trains much faster. | Built for millions of rows, which matters when the model is retrained on the full fleet. It can take manufacturer and model directly as categories, so they don’t have to be turned into dozens of yes/no columns. It is also a direct check on whether XGBoost’s results hold up. |
+| **LightGBM** *(our sixth pick)* | Works like XGBoost, but groups values into bins so it trains much faster. | Built for millions of rows, which matters when the model is retrained on the full fleet. It can take manufacturer directly as a category, so it doesn’t have to be turned into yes/no columns. It is also a direct check on whether XGBoost’s results hold up. |
 
 ### 8.2 Model Tuning and Probability Calibration
 
@@ -301,20 +293,18 @@ Tuning: Each model's setting such as tree depth and penalty on complexity will b
 
 Rare Failure: Failures will be given extra weight in training so that the models do not learn to simply predict "healthy" every time.
 
-
 ### 8.3 Manufacturer-Bias Audit
 
-The EDA shows us that failure rates differ by manufacturer (HGST is about 3× WDC), and that different SMART attributes mean different things for some manufacturers. A model could therefore end up learning “HGST drives are risky” instead of reading the actual health signals . To check for these we will:
+The EDA shows us that failure rates differ by manufacturer (HGST is about 3× WDC), and that different SMART attributes mean different things for some manufacturers. A model could therefore end up learning “HGST drives are risky” instead of reading the actual health signals. To check for these we will:
 1. Report results separately for each manufacturer and for the largest drive models.
 2. Compare the model with and without the manufacturer feature, as a result if the performance drops the model is leaning on the brand rather than drive health.
 3. Check drives that are missing an attribute and see if they are not unfairly flagged.
 
-
 ### 8.4 Final Evaluation and Error Analysis
 
-After the final model and its calibrations are locked, we will use the test split to report precision and recall at 1 and 10 replacements per 1,000 drives, PR-AUC, and the f1-score.
+After the final model and its calibrations are locked, we will use the test split to report precision and recall at 1 and 10 replacements per 1,000 drives, PR-AUC, and the F1-score.
 
-The results will be stored and compared with the SMART 5 rule and random guessing. We will look at the missed failure, false alarms, and how the results change with drive age, manufacturer, and models that are not in the training split. Additionally we will measure how much the 2025 fleet differs from 2023–24, to explain any drop in performance between calibration and test.
+The results will be stored and compared with the SMART 5 rule and random guessing. We will look at the missed failures, false alarms, and how the results change with drive age, manufacturer, and models that are not in the training split. Additionally we will measure how much the 2025 fleet differs from 2023–24, to explain any drop in performance between calibration and test.
 
 ### 8.5 Timeline and Deliverables
 
@@ -340,7 +330,6 @@ In the natural-rate calibration data, about 1 in 905 drive windows ends in failu
 
 4. Limited Data for some groups. Some models have insufficient failures in the data set for the model to truly understand them. The failure rate estimates are near 0% if normal approximation is used, so we use Poisson confidence intervals to estimate their failure rate.
 
-
 ### 9.2 Missing and Manufacturer-Dependent SMART Attributes
 
 S197 is missing for 2.2% of training rows. Every missing value comes from two Toshiba variants (MG08ACA16TEY, MG07ACA14TEY) that do not report the attribute. As this missingness is not random but tied to the model, mean or median imputation will result in false healthy readings, so we keep these values as 'NaN'. Logistic regression cannot take missing values, so the baseline imputes the median and adds a separate "not reported" indicator column, which keeps the missingness visible to the model.
@@ -349,7 +338,7 @@ Another issue we observed is the Vendor specific encoding on the SMART attribute
 
 ### 9.3 Temporal Distribution Shift and Unseen Drive Models
 
-The training set covers Jan 2023 to Oct 2024 and the test set covers 2025, so evaluation reflects real-world deployment on future data. Train contains 63 of the dataset's 72 drive models, and 67% of the drives in the test set never appear in train. Capacity is also strongly tied to age (ρ = −0.845): newer drives are bigger. Taking all this into account we decided to use vendor and capacity features rather than raw model identity, and to consider age relative to each model's population.
+The training set covers Jan 2023 to Oct 2024 and the test set covers 2025, so evaluation reflects real-world deployment on future data. Train contains 63 of the dataset's 72 drive models, and 67% of the drives in the test set never appear in train, largely because down-sampling removed most healthy windows from train. Capacity is also strongly tied to age (ρ = −0.845): newer drives are bigger. Taking all this into account we decided to use vendor and capacity features rather than raw model identity, and to consider age relative to each model's population.
 
 ### 9.4 Challenges Encountered and Workarounds
 
@@ -383,11 +372,11 @@ Tool: Claude (Anthropic), used through Claude Code.
 
 ### Hashim Khan
 
--Tool: Claude (Anthropic), used through Claude Code.
+- Tool: Claude (Anthropic), used through Claude Code.
 
-- **EDA Notebook**: Claude helped debug code and helped make the notbook look aesthetically better. It helped make the graphs look more organized and color coded them. It was also used to drive meaningful information from the results.
+- **EDA Notebook**: Claude helped debug code and helped make the notebook look aesthetically better. It helped make the graphs look more organized and color coded them. It was also used to derive meaningful information from the results.
 
-- **Report, written by me**: It proof read my part to make sure english language was followed, no grammatical error or spelling mistakes were made.
+- **Report, written by me**: It proofread my part to make sure English language was followed, no grammatical error or spelling mistakes were made.
 
 ### Mrgaj Iyer
 
