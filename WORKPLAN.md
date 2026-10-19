@@ -51,7 +51,7 @@ baselines, which can run in parallel.
 | 5 | Baseline 1: the threshold rule operators use today, any non-zero SMART 5 | Mrgaj | Not started |
 | 6 | Baseline 2: logistic regression on the populated attributes | Mrgaj | Not started |
 | 7 | Hold out an unsampled, true-prevalence slice for recalibration | Tyler | Done, `modeling_calib.parquet` |
-| 8 | EDA on the modeling table (train and calib only, not test) | Hashim | Not started |
+| 8 | EDA on the modeling table (train and calib only, not test) | Hashim | Done |
 
 **Closed September 27, 2026: four SSD models had got past the SSD filter**, 500
 training rows and 870 calibration rows. The filter was fixed and the pipeline

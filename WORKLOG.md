@@ -119,7 +119,27 @@ Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
 ### Hashim Khan
 
-- No commits this week.
+- **Focus:** Understanding the modeling files and building the analysis.
+- **Profiled the three modeling files:**
+  - Train: 169,827 windows, including 8,087 failures.
+  - Calibration: 297,009 windows, including 328 failures.
+  - Test: 3,521,973 windows.
+  - Confirmed that the datasets contain Backblaze SMART data organized into 30-day windows and are split chronologically. The training set was down-sampled to exactly 20 healthy windows per failure.
+
+- **Set up the environment:** Installed the plotting, statistical analysis, and notebook libraries, including `matplotlib`, `seaborn`, `scipy`, `scikit-learn`, `nbformat`, and `nbconvert`.
+
+- **Built the EDA notebook (`EDA_HDD_Failure.ipynb`):**
+  - Documented dataset provenance, dataset sizes, and a feature catalogue.
+  - Completed a 12-point data-quality audit, with all checks passing.
+  - Analyzed missing values and identified gaps associated with specific drive models, indicating that average imputation may be inappropriate.
+  - Conducted five statistical analyses:
+    1. Class imbalance and differences in failure rates across dataset splits.
+    2. Failure rates by manufacturer, model, and age.
+    3. SMART warning signs in failing versus healthy drives.
+    4. Raw versus vendor-normalized SMART values.
+    5. Correlation, feature redundancy, and changes within each window.
+  - Reviewed the charts for readability and color-blind accessibility, fixing overlapping labels and titles.
+
 
 ### Mrgaj Iyer
 
