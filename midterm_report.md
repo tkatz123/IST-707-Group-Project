@@ -372,11 +372,11 @@ Tool: Claude (Anthropic), used through Claude Code.
 
 ### Hashim Khan
 
--Tool: Claude (Anthropic), used through Claude Code.
+- Tool: Claude (Anthropic), used through Claude Code.
 
-- **EDA Notebook**: Claude helped debug code and helped make the notbook look aesthetically better. It helped make the graphs look more organized and color coded them. It was also used to drive meaningful information from the results.
+- **EDA Notebook**: Claude helped debug code and helped make the notebook look aesthetically better. It helped make the graphs look more organized and color coded them. It was also used to derive meaningful information from the results.
 
-- **Report, written by me**: It proof read my part to make sure english language was followed, no grammatical error or spelling mistakes were made.
+- **Report, written by me**: It proofread my part to make sure English language was followed, no grammatical error or spelling mistakes were made.
 
 ### Mrgaj Iyer
 
