@@ -380,7 +380,11 @@ Tool: Claude (Anthropic), used through Claude Code.
 
 ### Mrgaj Iyer
 
-- _To be added by Mrgaj._
+Tool: Claude (Anthropic).
+
+- **Code:** I used Claude only to review my code in `baselines/baseline_models.ipynb` and point out any gaps.
+- **Report, written by me:** section 7, except the logistic regression results in 7.4 and 7.5 and the note under the 7.4 table (see Tyler's entry). Claude proofread my sections and helped with formatting.
+
 
 ## References
 
