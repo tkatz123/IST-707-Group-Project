@@ -22,7 +22,7 @@ Today, most drives are monitored with a fixed threshold. Each drive's own firmwa
 
 Machine learning research since then has tried to close this gap by combining many readings instead of watching each one separately. In an early example, Murray, Hughes and Kreutz-Delgado showed that support vector machines (SVMs) and a naive Bayes variant outperformed the threshold alarm built into drives while keeping false alarms low.[^murray2005] Li et al. trained decision trees on 25,792 drives and caught over 95% of failures with a false alarm rate under 0.1%. Their regression tree also gave each drive a health score instead of a simple pass or fail.[^li2014] Botezatu et al. at IBM Research used machine learning to predict disk replacements ahead of time in production data centers.[^botezatu2016] Aussel et al. used the same public Backblaze dataset as this project. They compared SVMs, random forests and gradient-boosted trees and reached over 95% precision and 67% recall on one year of data with roughly 5,000 healthy samples for every failure.[^aussel2017] More recently, Lu et al. reached a combined precision and recall score of 0.95 ten days ahead across 380,000 drives, but did so by adding performance and location data to the drives' own readings. That supports Pinheiro's conclusion that drive health readings alone have a ceiling.[^lu2020] Amram et al. have also argued that these models need to be interpretable for operators to trust and act on them.[^amram2021]
 
-Our project builds on this work in three ways. First, it tests the model on a year it has never seen. Aussel et al. and Lu et al. both trained and evaluated within a single short window (one year and two months, respectively), while we train on 2023 and 2024, and test on all of 2025. This matters because the fleet changes over time: in our data, the failure rate per drive-day fell from about 1 in 21,000 in 2023 to 1 in 27,000 in 2025. Second, rather than reporting accuracy at a fixed alarm threshold, we rank drives by risk and measure how many real failures fall within a fixed replacement budget. This extends the health-score idea from Li et al. into the decision an operator actually makes. Third, we compare nine models, including the gradient-boosted trees Aussel et al. tested, across three years of data rather than one. We also inherit a limit: the public dataset contains only drive health readings, so the ceiling Pinheiro et al. identified applies to our model too, and the extra signals Lu et al. used are not available to us. Because these studies use different datasets, prediction windows and metrics, their reported numbers are not directly comparable to each other or to ours.
+Our project builds on this work in three ways. First, it tests the model on a year it has never seen. Aussel et al. and Lu et al. both trained and evaluated within a single short window (one year and two months, respectively), while we train on 2023 and 2024, and test on all of 2025. This matters because the fleet changes over time: in our data, the failure rate per drive-day fell from about 1 in 21,000 in 2023 to 1 in 27,000 in 2025. Second, rather than reporting accuracy at a fixed alarm threshold, we rank drives by risk and measure how many real failures fall within a fixed replacement budget. This extends the health-score idea from Li et al. into the decision an operator actually makes. Third, we compare six models, including the gradient-boosted trees Aussel et al. tested, across three years of data rather than one. We also inherit a limit: the public dataset contains only drive health readings, so the ceiling Pinheiro et al. identified applies to our model too, and the extra signals Lu et al. used are not available to us. Because these studies use different datasets, prediction windows and metrics, their reported numbers are not directly comparable to each other or to ours.
 
 ## 4. Dataset
 
@@ -104,7 +104,7 @@ The following table shows the attributes, what percentage of the failed drives h
 | S194 Temperature | Always > 0 | Always > 0 | N/A |
 | S192 Power-Off Retract | 87.7% | 89.9% | 1.24 |
 | S199 UltraDMA CRC Errors | 1.4% | 1.6% | 1.09 (0.9–1.3) |
-| S10 Spin Retry Count | 0.0% | 0.0% | — |
+| S10 Spin Retry Count | 0.0% | 0.0% | N/A |
 
 
 S5, S197, S198 are seen to be the three most dominant precursors. A non-zero value for these three attributes significantly raises the odds of failure. However they are not sufficient on their own because about half of the failing drives have S5 = 0. Drives that fail suddenly, for example through electronics, motor or head failure, give no warning in these counters, which caps the recall that SMART alone can achieve.
@@ -185,15 +185,89 @@ The rule is about 12 times better than random at picking failing drives, but alm
 
 ### 7.1 Model Description
 
+The best model evaluated so far is Logistic Regression, the first machine learning model implemented for predicting hard drive failures. Logistic Regression is a supervised classification algorithm that estimates the probability of a drive failing within the next 30 days based on its SMART telemetry, drive characteristics, and changes in health indicators over time.
+
+The model provides a relatively simple and interpretable approach for assessing whether historical telemetry can distinguish drives at elevated risk of failure. Its predicted probabilities can be used to rank drives from highest to lowest estimated failure risk, supporting a fixed-budget replacement strategy.
+
 ### 7.2 Training and Validation Setup
+
+The model was trained using the Backblaze hard drive dataset covering January 1, 2023, through October 21, 2024. The training dataset was downsampled to approximately 20 healthy observation windows for every failure window, resulting in 169,827 rows, including 8,087 failure windows.
+
+A separate calibration dataset covering November 1 through December 20, 2024, was retained at its natural failure prevalence. It contains 297,009 rows, including 328 failure windows, corresponding to a failure prevalence of approximately 0.11%.
+
+The test dataset covers January 1 through December 15, 2025, and contains 3,521,973 rows, including 3,722 failure windows. This dataset was held out to provide an independent evaluation of the model’s performance.
+
+Because Logistic Regression cannot directly process missing feature values, missing numerical values are handled using median imputation, with missingness indicators included to preserve information about unavailable telemetry. The training data’s downsampled failure distribution also means that predicted probabilities may require calibration before being interpreted as real-world failure probabilities.
 
 ### 7.3 Evaluation Metrics
 
+The model is evaluated using metrics suited to the highly imbalanced nature of hard drive failure prediction.
+
+- **Precision at a fixed replacement budget:** Measures the proportion of selected drives that actually fail within the prediction window. This reflects the efficiency of replacing drives when resources are limited.
+- **Recall at a fixed replacement budget:** Measures the proportion of all failures identified by selecting the highest-risk drives within the available replacement budget.
+- **Precision–Recall AUC (PR-AUC):** Evaluates the model’s ability to distinguish failure cases from healthy cases across different classification thresholds.
+- **F1-score:** Provides a supplementary measure balancing precision and recall at a selected threshold.
+
+Accuracy is not used as the primary metric because the overwhelming majority of observation windows represent non-failures. A model that predicts every drive as healthy could achieve high accuracy while failing to identify drives requiring attention.
+
 ### 7.4 Results
+
+For the results below, the model was refit on all of train and scored on the calibration split, which keeps the true failure rate of about 1 in 905. Drives are ranked by predicted risk and the top N per 1,000 are flagged, the same budget setup as §6.3.
+
+| Budget (per 1,000) | LR precision | LR recall | SMART 5 rule precision | SMART 5 rule recall |
+|---|---|---|---|---|
+| 1 | 15.8% | 14.3% | 1.3% | 1.2% |
+| 2 | 11.6% | 21.0% | 1.3% | 2.4% |
+| 5 | 7.2% | 32.6% | 1.3% | 6.0% |
+| 10 | 5.0% | 44.8% | 1.3% | 12.1% |
+| 41.7 (the rule's own) | 1.8% | 66.2% | 1.3% | 50.3% |
+
+Rule rows below its own budget of 41.7 are random draws from the drives it flags (§6.3), so its precision stays flat.
+
+PR-AUC is 0.082 for logistic regression, against 0.0073 for the SMART 5 rule and 0.0011 for random. At a budget of 1 per 1,000, about 1 in 6 flagged drives goes on to fail, against about 1 in 75 for the rule. At the rule's own budget of about 42 per 1,000, the model catches 66.2% of failures where the rule catches 50.3%.
+
+To choose a threshold and recalibrate the probabilities without scoring them on the data they were fit to, calibration was split 50/50 by drive. Half A chose the threshold (0.917) and fit Platt scaling; half B checked both. On half B the model reaches 11.3% precision, 23.5% recall and an F1 of 0.153, against 0.027 for the rule on the same half. Before recalibration the model's average predicted risk was 28 times the actual failure rate; after Platt scaling it is 1.1 times.
 
 ### 7.5 Comparison with Baselines
 
+The project uses two baseline approaches to assess the usefulness of machine learning for hard drive failure prediction.
+
+The SMART 5 rule flags drives with a nonzero final raw value for SMART attribute 5, which tracks reallocated sectors. It provides a simple and interpretable approach to identifying potentially unhealthy drives. However, it cannot capture every failure pattern because some drives fail without exhibiting this warning sign.
+
+The random baseline represents performance without meaningful predictive information. Because drive failures are rare, random selection has low expected precision and does not prioritize drives according to their likelihood of failure.
+
+On the calibration split, the model and both baselines compare as follows:
+
+| Evaluation metric | Logistic regression | SMART 5 rule | Random baseline |
+|---|---|---|---|
+| PR-AUC | 0.082 | 0.0073 | 0.0011 |
+| Precision at 1 per 1,000 | 15.8% | 1.3% | 0.11% |
+| Precision at 10 per 1,000 | 5.0% | 1.3% | 0.11% |
+| Recall at 1 per 1,000 | 14.3% | 1.2% | 0.1% |
+| Recall at 10 per 1,000 | 44.8% | 12.1% | 1.0% |
+| F1-score | 0.153 | 0.026 | Not applicable |
+
+The logistic regression F1 is at the 0.917 threshold on calibration half B (§7.4); the rule's F1 is on the full calibration split.
+
+These results demonstrate that the SMART 5 rule performs better than random selection, particularly in PR-AUC and recall at a replacement budget of 10 drives per 1,000. However, its precision remains low, highlighting the difficulty of identifying future failures in a highly imbalanced dataset.
+
+Logistic Regression extends these approaches by combining multiple telemetry features into a single risk estimate. Rather than relying exclusively on SMART attribute 5, the model can account for relationships among different SMART indicators, changes in their values over time, and drive characteristics. This broader feature-based approach supports more informed replacement prioritization. Its PR-AUC is about 11 times the rule's, and at 10 per 1,000 its precision and recall are each nearly four times the rule's.
+
 ### 7.6 Interpretation and Limitations
+
+The initial findings support the use of SMART telemetry for identifying elevated hard drive failure risk. Exploratory analysis shows that SMART attributes 5, 197, and 198 are strongly associated with failure.
+
+For example, nonzero SMART 197 values occur in approximately 41.5% of failed observation windows, compared with 1.2% of healthy windows. Similarly, nonzero SMART 5 values occur in approximately 47.9% of failed windows, compared with 3.4% of healthy windows. These differences indicate that the attributes provide useful warning signals, although they do not identify every failure.
+
+Several limitations must be considered:
+
+- **Class imbalance:** Failure windows represent a small proportion of the dataset, making precision and recall at practical replacement budgets more informative than accuracy.
+- **Sampling bias:** The training dataset was downsampled to a 20:1 healthy-to-failure ratio, while the calibration and test datasets retain their observed prevalence. This difference can affect the interpretation of predicted probabilities.
+- **Missing telemetry:** Some SMART attributes contain missing values, which may reflect device-specific reporting behavior rather than random data loss.
+- **Drive and manufacturer differences:** Telemetry behavior varies across drive models and manufacturers. A substantial proportion of test drives come from models not observed during training, creating a potential generalization challenge.
+- **Limited model comparison:** Logistic Regression is the only machine learning model evaluated so far. Additional models can be explored in future work to determine whether alternative approaches improve failure detection.
+
+Overall, Logistic Regression establishes the initial supervised-learning approach for the project. By combining multiple telemetry features, it provides a foundation for ranking drives according to estimated failure risk and supporting data-driven replacement decisions. Future work will focus on evaluating additional models, refining feature selection, improving probability calibration, and assessing performance across different drives and time periods.
 
 ## 8. Future Work
 
@@ -201,13 +275,13 @@ The rule is about 12 times better than random at picking failing drives, but alm
 
 In the next step we train 6 models and compare them against the baseline models. All 6 models will have the same inputs chosen from the EDA:
 
-1. raw values and 30 day changes foe s5, s197, s198
+1. raw values and 30 day changes for s5, s197, s198
 2. drive age
 3. wear counters (S193, and one of S4 or S12, since those two are nearly identical)
 4. temperature
 5. manufacturer
 
-We leave out vendor normalized values; s10: always zero and s199: no signal. Missing S197 values are interpolated and left as missing.
+We leave out vendor normalized values; s10: always zero and s199: no signal. Missing S197 values are kept as missing rather than filled in; models that cannot take missing values (logistic regression, SVM) get the median plus a "not reported" indicator column, as in the baseline (§9.2).
 
 We picked six models to run from simple to complex. This would help test whether the extra complexity results in better predictions.
 
@@ -223,16 +297,16 @@ We picked six models to run from simple to complex. This would help test whether
 
 ### 8.2 Model Tuning and Probability Calibration
 
-Tuning: Each mode's setting such as tree depth and penalty on complexity will be tunned on the training split. Cross validation will be split in such a way that no model is scored on months that came before the months it was trained on.
+Tuning: Each model's setting such as tree depth and penalty on complexity will be tuned on the training split. Cross validation will be split in such a way that no model is scored on months that came before the months it was trained on.
 
-Rare Failure: Failures will be given extra weight in training so that the models don not learn to simply predict "healthy" every time.
+Rare Failure: Failures will be given extra weight in training so that the models do not learn to simply predict "healthy" every time.
 
 
 ### 8.3 Manufacturer-Bias Audit
 
 The EDA shows us that failure rates differ by manufacturer (HGST is about 3× WDC), and that different SMART attributes mean different things for some manufacturers. A model could therefore end up learning “HGST drives are risky” instead of reading the actual health signals . To check for these we will:
-1. reports results separately for each manufacturer and for the largest drive models.
-2.Compare the model with and without the manufacturer feature, as a result if the performance drops the model is leaning on the brand rather than drive health.
+1. Report results separately for each manufacturer and for the largest drive models.
+2. Compare the model with and without the manufacturer feature, as a result if the performance drops the model is leaning on the brand rather than drive health.
 3. Check drives that are missing an attribute and see if they are not unfairly flagged.
 
 
@@ -240,7 +314,7 @@ The EDA shows us that failure rates differ by manufacturer (HGST is about 3× WD
 
 After the final model and its calibrations are locked, we will use the test split to report precision and recall at 1 and 10 replacements per 1,000 drives, PR-AUC, and the f1-score.
 
-The results will be stored and com[paredwith the SMART 5 rule and random guessing. We will look at the missed failure, false alarms, and how the results change. with drive age, manufacturer, and models that are not in the training split. Additionally we will measure how much the 2025 fleet differs from 2023–24, to explain any drop in performance between calibration and test.
+The results will be stored and compared with the SMART 5 rule and random guessing. We will look at the missed failure, false alarms, and how the results change with drive age, manufacturer, and models that are not in the training split. Additionally we will measure how much the 2025 fleet differs from 2023–24, to explain any drop in performance between calibration and test.
 
 ### 8.5 Timeline and Deliverables
 
@@ -262,7 +336,7 @@ In the natural-rate calibration data, about 1 in 905 drive windows ends in failu
 
 2. Prior Shift Between Train and the Natural-Rate Fleet: We down sampled the train set to a 1:20 ratio, which led to a 4.76% positive rate, 43 times the calibration prevalence. A model trained on this data produces an inflated failure rate.
 
-3. Cost of False Positives: The EDA shows how hard precision will be. S5 is non-zero for 47.9% of failing windows but also for 3.4% of healthy ones. At the natural rate of about 905 healthy windows per failure, a simple "S5 is non-zero" rule would be right only about 1.5% of the time. Thus the threshold we choose must be explicit and not a default value.
+3. Cost of False Positives: The EDA shows how hard precision will be. S5 is non-zero for 47.9% of failing windows but also for 3.4% of healthy ones. At the natural rate of about 905 healthy windows per failure, a simple "S5 is non-zero" rule would be right only about 1.3% of the time (§6.1). Thus the threshold we choose must be explicit and not a default value.
 
 4. Limited Data for some groups. Some models have insufficient failures in the data set for the model to truly understand them. The failure rate estimates are near 0% if normal approximation is used, so we use Poisson confidence intervals to estimate their failure rate.
 
@@ -288,6 +362,32 @@ The training set covers Jan 2023 to Oct 2024 and the test set covers 2025, so ev
 | Vendor-encoded attributes | Apparent signal in S1, S3, S7 and normalized S194/S199 reflects manufacturer, not health | Within-vendor AUC computed alongside pooled AUC; vendor-confounded attributes flagged |
 
 ## 10. Conclusion
+
+Drive replacement today is reactive. The rule operators rely on, flagging any drive with reallocated sectors, catches about half of the drives that fail in the next 30 days, but only about 1 in 75 of the drives it flags actually fails. Our first trained model, logistic regression on SMART readings, their 30-day changes and drive characteristics, ranks drives far better: its PR-AUC is 0.082, against 0.0073 for the rule and 0.0011 for random selection. At a budget of 1 replacement per 1,000 drives, about 1 in 6 drives it flags goes on to fail. For an operator with a fixed weekly budget of spare drives and technician hours, that is the difference between a list that is mostly noise and one worth acting on.
+
+These results come from the calibration split. The 2025 test year has not been touched and will be scored once, after the final model is locked. The results also have a ceiling: about half of failing drives show no warning in their SMART counters, so no model built on these readings alone will catch every failure. The rest of the project trains and tunes six models, audits them for manufacturer bias, and reports final test results.
+
+## AI Use Disclosure
+
+This course allows AI tools as long as every use is documented. Uses are listed below by team member. Every number in AI-assisted text was checked against the notebooks' saved outputs or the pipeline's output, and each of us can explain the work listed under our name.
+
+### Tyler Katz
+
+Tool: Claude (Anthropic), used through Claude Code.
+
+- **Code:** Claude helped write `scripts/build_dataset.py`, `scripts/build_modeling_table.py` and `documents/data_card.md` at my request, to requirements I set. I reviewed the output.
+- **Report, written by me:** sections 1, 2 and 4.1, and the first paragraph of 4.3. Claude checked them for accuracy and typos.
+- **Report, edits by Claude at my request:** corrected sections 5 and 9 to match the fixed EDA notebook; formatted Mrgaj's section 7 text as markdown; wrote the logistic regression results in 7.4 and 7.5 and the note under the 7.4 table from the saved outputs of `baselines/baseline_models.ipynb` (not re-run); made sections 3, 8.1 and 9.2 consistent; trimmed the opening of 7.4; corrected typos and one figure in 9.1 to match 6.1.
+- **Review:** Claude reviewed the EDA notebook and the baseline notebook against the rules in WORKPLAN.md. I sent the resulting fix lists to Hashim and Mrgaj.
+- **Slides:** Claude generated the first draft of the slide deck (`midterm_slides.pptx`) from this report's content, including the suggested speaker notes. The team reviewed and revised it.
+
+### Hashim Khan
+
+- _To be added by Hashim._
+
+### Mrgaj Iyer
+
+- _To be added by Mrgaj._
 
 ## References
 

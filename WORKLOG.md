@@ -28,14 +28,72 @@ Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
   README's rebuild steps), since the rubric does not allow submitting data.
 - **Moved `midterm_report.md` to the repository root**, where the rubric
   requires it, and updated its image path to `documents/images/`.
+- **Sent Hashim a fix list for the EDA notebook** (October 15) after reviewing
+  it against the split rules in WORKPLAN.md.
+- **Corrected sections 5 and 9 of the report against the fixed EDA notebook**: calibration-split figures (1 in 905, 43x, weight x36) in place of
+  test-split ones, removed claims and tests the notebook no longer computes, and
+  fixed the capacity table.
+- **Reviewed Mrgaj's logistic regression notebook and sent a fix list**
+  (October 17): the no-training baseline was missing, the threshold was chosen
+  on the train fold rather than calib, and the data path failed from the repo
+  root.
+- **Moved `baseline_models.ipynb` into `baselines/`**, so its
+  `../data/modeling` path resolves and matches section 6.
+- **Added Mrgaj's section 7 text to the report** and filled in the logistic
+  regression results in 7.4 and 7.5 from the notebook's saved outputs.
+- Fixed two inconsistencies between sections: section 3's model count (six, to
+  match section 8) and section 8.1's handling of missing S197 values (to match
+  9.2).
 
 ### Hashim Khan
 
-- _To fill in._
+- **Wrote section 5, Exploratory Data Analysis** (October 13): the five
+  analyses (class imbalance and prior shift; failure by manufacturer, model and
+  age; SMART signatures of failing vs healthy drives; raw vs normalized SMART
+  values; correlation, redundancy and degradation), with the 5.4A figure.
+- **Wrote section 9, Problems and Challenges** (October 13 to 15): class
+  imbalance, missing and manufacturer-dependent SMART attributes, temporal shift
+  and unseen drive models, and the challenges and workarounds table.
+- **Fixed the EDA notebook from the October 15 review**: the test
+  split now loads only the serial number and window keys, Analysis 2 and the
+  chi-square test run on calib, the negative weight is corrected to 36.05, and
+  the overclaims and contradictions are fixed. Updated section 5 to match.
+- **Wrote section 8, Future Work** (October 18): the six models, tuning
+  and calibration, the manufacturer-bias audit, the final evaluation plan, and the
+  timeline.
 
 ### Mrgaj Iyer
 
-- _To fill in._
+- **Built the logistic regression baseline** (October 16):
+  chronological fit and validation folds, signed-log scaling, a budget table on
+  calib, and a Platt calibration check.
+- **Reworked it into `baseline_models.ipynb` after the October 17 review**: added the SMART 5 rule as the no-training baseline, chose the
+  threshold on calib, split calib 50/50 by drive (half A picks the threshold and
+  fits Platt scaling, half B checks both), left window 17 out as a gap between
+  fit and validation, added an S197 missing indicator, and used vendor and
+  capacity in place of drive model. PR-AUC 0.082 against 0.0073 for the rule and
+  0.0011 for random.
+- **Wrote section 6, Baselines**, and updated 9.2 to describe the
+  S197 indicator.
+- **Wrote section 7, Best Model So Far** (October 18), sent to Tyler and added to
+  the report.
+
+## Week of October 6 to 12, 2026
+
+### Tyler Katz
+
+- No commits this week.
+
+### Hashim Khan
+
+- **Built the EDA notebook** (`eda/EDA_HDD_Failure.ipynb`, October 8), fixed
+  its first round of bugs, and wrote interpretations of the findings.
+- **Created the midterm report skeleton** (`documents/midterm_report.md`,
+  October 8).
+
+### Mrgaj Iyer
+
+- No commits this week.
 
 ## Week of September 29 to October 5, 2026
 
@@ -61,11 +119,11 @@ Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
 ### Hashim Khan
 
-- _To fill in._
+- No commits this week.
 
 ### Mrgaj Iyer
 
-- _To fill in._
+- No commits this week.
 
 ## Week of September 22 to 28, 2026
 
@@ -136,11 +194,11 @@ Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
 ### Hashim Khan
 
-- _To fill in._
+- No commits this week.
 
 ### Mrgaj Iyer
 
-- _To fill in._
+- No commits this week.
 
 ## Week of September 15 to 21, 2026
 
