@@ -76,7 +76,7 @@ In this analysis we calculate annual failure rate (AFR) for all the manufacturer
 
 The results show that HGST drives fail at 2.61% per year, about 3× WDC’s 0.85%, and HGST’s confidence interval does not overlap with any other vendor’s. Across the 15 models with at least 5,000 windows, a χ² test of independence rejects "failure does not depend on the model" (χ² = 113.9, dof = 14, p ≈ 10⁻¹⁷). However, Cramér’s V is only 0.020, a small effect, so the tiny p-value mostly reflects the large sample.
 
-We also determined that age does not follow the classic reliability curve, as AFR is 0.92% in the first and second year, rises to 3.56% at 5–6 years, and then falls to 1.48% from 7 up to 8 years and 0.88% from 8 up to 10. Another observation is that capacity also has a hand in drive failure. The older 12 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
+We also determined that age does not follow the classic reliability curve, as AFR is 0.92% in the first year, dips to about 0.68% in the second, rises to 3.56% at 5–6 years, and then falls to 1.48% from 7 up to 8 years and 0.88% from 8 up to 10. Another observation is that capacity also has a hand in drive failure. The older 12 TB drives fail most often (2.21%) and 16 TB drives least (0.83%).
 
   | Capacity | 8 TB | 12 TB | 14 TB | 16 TB | 22 TB |
   |---|---|---|---|---|---|
