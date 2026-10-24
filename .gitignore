@@ -228,3 +228,4 @@ data/
 
 .vscode/
 
+Models/Random_Forest/rf_best.joblib
