@@ -3,6 +3,45 @@
 What actually got done, newest week first. One entry per week, per person.
 Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
+## Week of October 26 to November 1, 2026
+
+### Tyler Katz
+
+- **Built and tuned the decision tree** (`Models/Decision_Tree/DECISION TREE_v1.ipynb`),
+  adapted from Hashim's random forest notebook with the same features,
+  preprocessing and time-based folds, so the models compare directly.
+  - First tree (depth 10, leaf 20): calibration PR-AUC 0.0701, ROC-AUC 0.879,
+    against 0.082 for logistic regression and 0.0995 for the untuned forest.
+  - Randomized search over 100 of 4,320 combinations (400 fits, under a
+    minute), adding split rule and cost-complexity pruning (`ccp_alpha`) to the
+    grid. The first search picked a leaf size of 100 at the edge of its range;
+    widened to 50 to 500 and re-run, larger leaves scored worse, so 100 holds.
+  - Best: depth 15, leaf 100, entropy, `ccp_alpha=1e-5`, time-CV PR-AUC
+    **0.548** (std 0.033). Pruning barely mattered. The best depth-5 tree
+    scores 0.530 and is small enough to draw in full.
+  - Saved `dt_best.joblib` and `dt_search_results_ranked.csv`.
+- **Built and tuned the SVM** (`Models/SVM/SVM_v1.ipynb`).
+  - An exact kernel SVM (`SVC`) cannot fit 170k rows in reasonable time, so
+    the notebook approximates the RBF kernel with `Nystroem` and trains a
+    `LinearSVC` on it.
+  - Numeric columns get the baseline's signed log transform and standard
+    scaling, which an SVM needs and the trees did not.
+  - SVMs give margin scores, not probabilities, so the calibration table uses
+    margin thresholds and drops the Brier score until calibration.
+  - First SVM: calibration PR-AUC 0.0336, ROC-AUC 0.879. Its default `gamma`
+    was far larger than anything that ranked well in tuning.
+  - Grid search in two rounds. The first (24 combinations, 96 fits, 12.6 min)
+    put all three best values on the edge of the grid; the second (9
+    combinations, 36 fits, 31.7 min) moved past them.
+  - Best: `C=100`, `gamma=0.0003`, 1,000 components, time-CV PR-AUC **0.551**
+    (std 0.029). The top 5 settings are within 0.004. Every top setting uses a
+    very small `gamma`, so the SVM does best with a smooth, nearly linear
+    boundary.
+  - Saved `svm_best.joblib` and `svm_search_results_ranked.csv`.
+- Time-CV PR-AUC so far: random forest 0.573, SVM 0.551, decision tree 0.548.
+- The markdown in both notebooks was drafted with AI assistance; to be
+  recorded in the AI-use disclosure.
+
 ## Week of October 13 to 19, 2026
 
 ### Tyler Katz
