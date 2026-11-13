@@ -3,6 +3,99 @@
 What actually got done, newest week first. One entry per week, per person.
 Forward-looking plans live in [WORKPLAN.md](WORKPLAN.md).
 
+## Week of November 9 to 15, 2026
+
+### Tyler Katz
+
+- **November 10: audited the repository against the final rubric** after the
+  in-class rubric walkthrough. About 10 documented runs so far: the two
+  baselines, plus a first fit and a search for each of the decision tree,
+  random forest, XGBoost and SVM. **Found that the before-tuning and after-tuning
+  numbers could not be compared**: before-tuning scores were on calib (failures
+  about 1 in 905, PR-AUC 0.034 to 0.100) and tuned scores on the training folds
+  (1 in 21, PR-AUC 0.548 to 0.595), so the jump is mostly the failure rate, not
+  tuning.
+- **November 10: wrote the seven-step plan for the remaining code work** and
+  emailed it to Hashim and Mrgaj with an owner for each step: tune logistic
+  regression, build and tune LightGBM, score every untuned model on the same
+  folds, widen the searches whose best value sits on a grid edge, score each
+  tuned model once on calib, compare and calibrate the best model, and score
+  test once. The email also sets out why train, calib and test each have one
+  job.
+- **November 10: created `Models/artifacts/` for every saved model** (commit
+  `d53f0f0`). Moved `dt_best.joblib` and `svm_best.joblib` into it, and set all
+  four model notebooks to save both an untuned `<model>_base.joblib` (right
+  after the first fit in 5.1) and the tuned `<model>_best.joblib` there.
+  Pointed the random forest and XGBoost notebooks at `../../data/modeling/`,
+  and moved the `.gitignore` entries for the random forest's large model files
+  to the new folder. Made with AI assistance.
+- **November 13: steps 3 and 5 of the remaining code plan for the decision
+  tree and SVM.**
+- **Step 3, untuned models scored on the time folds** (new section 6.2 in both
+  notebooks). `cross_validate` on the untuned model with the same 4 time-based
+  folds and the same four metrics as the search, so the before-tuning number is
+  on the same scale as the tuned one. The old before-tuning numbers were on
+  calib, where failures are 1 in 905 rather than 1 in 21, so they could not be
+  compared with the search scores.
+  - Decision tree: untuned PR-AUC **0.527** (std 0.034) against tuned 0.548
+    (std 0.033). Tuning gained 0.021, less than one std, so the starting
+    settings were already close to the best a single tree can do.
+  - SVM: untuned PR-AUC **0.459** (std 0.044) against tuned 0.551 (std 0.029).
+    Tuning gained 0.092, about two std, mostly from the much smaller `gamma`.
+    The untuned SVM also used 500 kernel components against the tuned 1,000,
+    so part of the gap is the component count.
+- **Added the same section 6.2 (markdown, empty code cell and a results
+  placeholder) to the random forest and XGBoost notebooks**, so all four model
+  notebooks match for Hashim's step 3 and can serve as templates for Mrgaj's.
+  The random forest version notes that its untuned model uses
+  `class_weight="balanced_subsample"` while every tuned setting uses
+  `"balanced"`.
+- **Fixed two errors in the existing markdown**: the XGBoost search section
+  still said it had not been run, so it now records the saved results (5.6
+  minutes, PR-AUC 0.595, std 0.030); the random forest section named the wrong
+  results file (`rf_search_results.csv`, not `rf_search_results_ranked.csv`).
+- **Step 4 for the SVM skipped, by decision.** The plan was to widen `C` past
+  100, but the search already shows a plateau (`C` from 10 to 100 adds almost
+  nothing) and the search takes over 30 minutes.
+- **Step 5, each tuned model scored once on calib** (new section 7 in all four
+  notebooks, filled in for the decision tree and SVM). The tuned model is loaded
+  from `Models/artifacts/<model>_best.joblib`, the file the final test will use,
+  and its predictions are saved as `<model>_calib_preds.csv` with the columns
+  `serial_number`, `window`, `label` and `prob`.
+  - Decision tree: calib PR-AUC **0.0736**, against 0.0701 untuned.
+  - SVM: calib PR-AUC **0.0856**, against 0.0336 untuned, about 2.5 times
+    higher. Its `prob` column holds margin scores, not probabilities, until
+    Platt scaling in step 6.
+  - Both files hold 297,009 rows and 328 failures, matching calib exactly.
+- Saved the untuned models as `dt_base.joblib` and `svm_base.joblib` in
+  `Models/artifacts/`.
+- **Found that the saved pipelines need `build_features` (and, for the SVM and
+  logistic regression, `signed_log`) defined before `joblib.load`**, because
+  pickle stores those functions by name, not by code. The comparison and final
+  test notebooks will have to define them or import them from a shared file.
+- Calib PR-AUC of the tuned models so far: SVM 0.0856, decision tree 0.0736.
+- The markdown in sections 6.2 and 7 was drafted with AI assistance; the code
+  is Tyler's. To be recorded in the AI-use disclosure.
+
+## Week of November 2 to 8, 2026
+
+### Tyler Katz
+
+- **Pushed the SVM notebook, its search results and the October 26 worklog
+  entry** (November 2, commit `55376d2`). The SVM work itself is logged under
+  the week of October 26.
+- **Reviewed the final rubric against the repository** (November 5, the day
+  after it was posted), with AI assistance, and sent Hashim and Mrgaj the list
+  of what the final report and code still need.
+
+### Hashim Khan
+
+- No commits this week.
+
+### Mrgaj Iyer
+
+- No commits this week.
+
 ## Week of October 26 to November 1, 2026
 
 ### Tyler Katz
