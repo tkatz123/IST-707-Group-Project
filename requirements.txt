@@ -9,6 +9,7 @@ pyarrow~=17.0          # Parquet read/write, and the CSV reader used on the dail
 # Modeling
 scikit-learn~=1.5
 xgboost~=2.1
+lightgbm~=4.7          # LightGBM notebook (Models/LightGBM)
 
 # Figures and notebooks
 matplotlib~=3.9
